@@ -245,6 +245,14 @@ class FroniusCounterPointSensor(CoordinatorEntity, SensorEntity):
             energy_data = cp_data.get("energy", {})
             total_data = energy_data.get("total", {}).get("total", {})
 
+            # DEBUG: Log the structure to understand the data
+            _LOGGER.debug(f"Counter Point {self._cp_id} energy_data keys: {energy_data.keys()}")
+            _LOGGER.debug(f"Counter Point {self._cp_id} energy_data.data keys: {energy_data.get('data', {}).keys()}")
+            if energy_data.get("data"):
+                first_key = list(energy_data.get("data", {}).keys())[0] if energy_data.get("data") else None
+                if first_key:
+                    _LOGGER.debug(f"Counter Point {self._cp_id} first data entry: {first_key} -> {energy_data['data'][first_key]}")
+
             # Get daily data from the energy_data
             daily_data_crec = {}
             daily_data_cgrid = {}
