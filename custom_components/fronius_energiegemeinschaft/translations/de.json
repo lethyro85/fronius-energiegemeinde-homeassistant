@@ -1,0 +1,21 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Fronius Energiegemeinschaft einrichten",
+        "description": "Geben Sie Ihre Anmeldedaten für das Fronius Energiegemeinschafts-Portal ein.",
+        "data": {
+          "username": "E-Mail / Benutzername",
+          "password": "Passwort"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Ungültige Anmeldedaten",
+      "unknown": "Ein unbekannter Fehler ist aufgetreten"
+    },
+    "abort": {
+      "already_configured": "Diese Integration ist bereits konfiguriert"
+    }
+  }
+}
