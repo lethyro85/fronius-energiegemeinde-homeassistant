@@ -1,0 +1,16 @@
+# Debug-Logging für Fronius Energiegemeinschaft aktivieren
+#
+# Fügen Sie dies in Ihre configuration.yaml ein (auf Root-Ebene, KEINE Einrückung):
+
+logger:
+  default: info
+  logs:
+    custom_components.fronius_energiegemeinschaft: debug
+    custom_components.fronius_energiegemeinschaft.sensor: debug
+
+# Nach dem Hinzufügen:
+# 1. Speichern Sie die configuration.yaml
+# 2. Gehen Sie zu Entwicklerwerkzeuge → YAML → YAML-Konfiguration neu laden → Alles
+# 3. Warten Sie 5 Minuten (bis die nächste Aktualisierung erfolgt)
+# 4. Gehen Sie zu Einstellungen → System → Protokolle
+# 5. Suchen Sie nach "fronius" und kopieren Sie die relevanten Zeilen

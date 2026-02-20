@@ -282,6 +282,12 @@ class FroniusCounterPointSensor(CoordinatorEntity, SensorEntity):
                         except (ValueError, TypeError):
                             pass
 
+            # TEMPORARY DEBUG: Show first 3 entries of raw data structure
+            debug_raw_data_sample = {}
+            if raw_data:
+                for i, (key, value) in enumerate(list(raw_data.items())[:3]):
+                    debug_raw_data_sample[key] = value
+
             return {
                 "counter_point_id": self._cp_id,
                 "counter_number": self._cp_number,
@@ -306,6 +312,8 @@ class FroniusCounterPointSensor(CoordinatorEntity, SensorEntity):
                 "last_30_days_frec": list(daily_data_frec.values())[-30:] if daily_data_frec else [],
                 "last_30_days_fgrid": list(daily_data_fgrid.values())[-30:] if daily_data_fgrid else [],
                 "last_30_days_ftotal": list(daily_data_ftotal.values())[-30:] if daily_data_ftotal else [],
+                "DEBUG_energy_data_keys": list(energy_data.keys()),
+                "DEBUG_raw_data_sample": debug_raw_data_sample,
             }
         except (KeyError, TypeError):
             return {}
