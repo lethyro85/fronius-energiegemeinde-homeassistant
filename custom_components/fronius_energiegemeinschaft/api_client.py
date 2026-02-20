@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 from typing import Any
+from urllib.parse import unquote
 
 import aiohttp
 from homeassistant.core import HomeAssistant
@@ -48,14 +49,19 @@ class FroniusEnergyClient:
             if resp.status != 200:
                 raise Exception(f"Failed to get login page: {resp.status}")
 
-            # Store cookies
+            # Store cookies - aiohttp already URL-decodes them
             for cookie in resp.cookies.values():
                 self.cookies[cookie.key] = cookie.value
 
         # The CSRF token is already in the XSRF-TOKEN cookie from the login page
-        # But we need to make sure we have the latest one
         if not self.cookies.get("XSRF-TOKEN"):
             raise Exception("No XSRF-TOKEN cookie found after loading login page")
+
+        # Laravel expects the CSRF token to be URL-decoded in the header
+        csrf_token = unquote(self.cookies.get("XSRF-TOKEN", ""))
+
+        _LOGGER.debug(f"XSRF-TOKEN cookie: {self.cookies.get('XSRF-TOKEN')[:50]}...")
+        _LOGGER.debug(f"Decoded CSRF token: {csrf_token[:50]}...")
 
         # Perform login
         login_data = {
@@ -65,11 +71,15 @@ class FroniusEnergyClient:
         }
 
         headers = {
-            "X-XSRF-TOKEN": self.cookies.get("XSRF-TOKEN", ""),
+            "X-XSRF-TOKEN": csrf_token,
             "Content-Type": "application/json",
             "Accept": "application/json",
             "X-Requested-With": "XMLHttpRequest",
+            "Referer": f"{BASE_URL}/backend/login",
         }
+
+        _LOGGER.debug(f"Attempting login for user: {self.username}")
+        _LOGGER.debug(f"Login URL: {BASE_URL}/backend/login")
 
         async with session.post(
             f"{BASE_URL}/backend/login",
@@ -77,7 +87,12 @@ class FroniusEnergyClient:
             headers=headers,
             cookies=self.cookies
         ) as resp:
+            _LOGGER.debug(f"Login response status: {resp.status}")
+
             if resp.status not in [200, 204]:
+                response_text = await resp.text()
+                _LOGGER.error(f"Login failed with status {resp.status}")
+                _LOGGER.error(f"Response: {response_text[:500]}")
                 raise Exception(f"Login failed: {resp.status}")
 
             # Update cookies after login
