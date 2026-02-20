@@ -69,6 +69,7 @@ class FroniusEnergyClient:
 
         # Perform login
         login_data = {
+            "remember": "",
             "email": self.username,
             "password": self.password,
         }
@@ -77,10 +78,11 @@ class FroniusEnergyClient:
             "X-XSRF-TOKEN": self.cookies.get("XSRF-TOKEN", ""),
             "Content-Type": "application/json",
             "Accept": "application/json",
+            "X-Requested-With": "XMLHttpRequest",
         }
 
         async with session.post(
-            f"{BASE_URL}/backend/api/auth/login",
+            f"{BASE_URL}/backend/login",
             json=login_data,
             headers=headers,
             cookies=self.cookies
