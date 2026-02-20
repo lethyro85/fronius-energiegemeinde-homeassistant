@@ -1,7 +1,10 @@
 {
   "name": "Fronius Energiegemeinschaft",
+  "country": ["AT", "DE"],
   "render_readme": true,
   "domains": ["sensor"],
   "iot_class": "Cloud Polling",
-  "homeassistant": "2023.1.0"
+  "homeassistant": "2023.1.0",
+  "zip_release": false,
+  "filename": "fronius_energiegemeinschaft.zip"
 }
