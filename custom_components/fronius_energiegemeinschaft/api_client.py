@@ -52,20 +52,10 @@ class FroniusEnergyClient:
             for cookie in resp.cookies.values():
                 self.cookies[cookie.key] = cookie.value
 
-        # Get CSRF token
-        async with session.get(
-            f"{BASE_URL}{API_CSRF}",
-            cookies=self.cookies
-        ) as resp:
-            if resp.status != 200:
-                raise Exception(f"Failed to get CSRF token: {resp.status}")
-
-            csrf_data = await resp.json()
-            self.csrf_token = csrf_data.get("token")
-
-            # Update cookies
-            for cookie in resp.cookies.values():
-                self.cookies[cookie.key] = cookie.value
+        # The CSRF token is already in the XSRF-TOKEN cookie from the login page
+        # But we need to make sure we have the latest one
+        if not self.cookies.get("XSRF-TOKEN"):
+            raise Exception("No XSRF-TOKEN cookie found after loading login page")
 
         # Perform login
         login_data = {
