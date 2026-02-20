@@ -261,26 +261,32 @@ class FroniusCounterPointSensor(CoordinatorEntity, SensorEntity):
             daily_data_fgrid = {}
             daily_data_ftotal = {}
 
-            # Counter points have data directly under "data", not under "data.total"
-            raw_data = energy_data.get("data", {})
-            for date_str, values in raw_data.items():
-                # Extract just the date part (YYYY-MM-DD)
-                date_only = date_str.split("T")[0]
+            # Counter points have data under rc_number key(s), similar to communities
+            # Get the first (usually only) rc_number key
+            data_dict = energy_data.get("data", {})
+            if data_dict:
+                # Take the first rc_number key (usually there's only one)
+                rc_key = list(data_dict.keys())[0]
+                raw_data = data_dict.get(rc_key, {})
 
-                # Extract all data keys
-                for key, daily_dict in [
-                    ("crec", daily_data_crec),
-                    ("cgrid", daily_data_cgrid),
-                    ("ctotal", daily_data_ctotal),
-                    ("frec", daily_data_frec),
-                    ("fgrid", daily_data_fgrid),
-                    ("ftotal", daily_data_ftotal),
-                ]:
-                    if key in values:
-                        try:
-                            daily_dict[date_only] = float(values[key])
-                        except (ValueError, TypeError):
-                            pass
+                for date_str, values in raw_data.items():
+                    # Extract just the date part (YYYY-MM-DD)
+                    date_only = date_str.split("T")[0]
+
+                    # Extract all data keys
+                    for key, daily_dict in [
+                        ("crec", daily_data_crec),
+                        ("cgrid", daily_data_cgrid),
+                        ("ctotal", daily_data_ctotal),
+                        ("frec", daily_data_frec),
+                        ("fgrid", daily_data_fgrid),
+                        ("ftotal", daily_data_ftotal),
+                    ]:
+                        if key in values:
+                            try:
+                                daily_dict[date_only] = float(values[key].get("value", "0"))
+                            except (ValueError, TypeError, AttributeError):
+                                pass
 
             # TEMPORARY DEBUG: Show first 3 entries of raw data structure
             debug_raw_data_sample = {}
