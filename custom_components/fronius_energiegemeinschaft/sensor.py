@@ -253,7 +253,8 @@ class FroniusCounterPointSensor(CoordinatorEntity, SensorEntity):
             daily_data_fgrid = {}
             daily_data_ftotal = {}
 
-            raw_data = energy_data.get("data", {}).get("total", {})
+            # Counter points have data directly under "data", not under "data.total"
+            raw_data = energy_data.get("data", {})
             for date_str, values in raw_data.items():
                 # Extract just the date part (YYYY-MM-DD)
                 date_only = date_str.split("T")[0]
