@@ -169,6 +169,19 @@ class FroniusCommunitySensor(CoordinatorEntity, SensorEntity):
 
             data_point = total_data.get(self._data_key, {})
 
+            # Get daily data from the energy_data
+            daily_data = {}
+            raw_data = energy_data.get("data", {}).get(self._rc_number, {})
+            for date_str, values in raw_data.items():
+                if self._data_key in values:
+                    # Extract just the date part (YYYY-MM-DD)
+                    date_only = date_str.split("T")[0]
+                    value = values[self._data_key].get("value", "0")
+                    try:
+                        daily_data[date_only] = float(value)
+                    except (ValueError, TypeError):
+                        pass
+
             return {
                 "community_id": self._community_id,
                 "community_name": self._community_name,
@@ -176,6 +189,8 @@ class FroniusCommunitySensor(CoordinatorEntity, SensorEntity):
                 "value_type": data_point.get("value_type"),
                 "null_values": data_point.get("null_values"),
                 "unit": energy_data.get("meta", {}).get("unit", "kWh"),
+                "daily_data": daily_data,
+                "last_30_days": list(daily_data.values())[-30:] if daily_data else [],
             }
         except (KeyError, TypeError):
             return {}
