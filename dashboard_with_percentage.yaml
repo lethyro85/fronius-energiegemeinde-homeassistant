@@ -1,0 +1,284 @@
+type: custom:vertical-stack-in-card
+cards:
+  # ==========================================
+  # KARTE 1: Verbrauch mit Prozentanzeige
+  # ==========================================
+  - type: custom:apexcharts-card
+    header:
+      show: true
+      title: Mein täglicher Verbrauch (letzte 30 Tage)
+      show_states: true
+      colorize_states: true
+    graph_span: 30d
+    span:
+      end: day
+      offset: "-2d"
+    now:
+      show: true
+      label: Heute
+    series:
+      # Gestapelte Balken für absolute Werte
+      - entity: sensor.counter_point_1_consumer
+        name: Gemeinschaft
+        type: column
+        color: "#4CAF50"
+        group_by:
+          func: last
+          duration: 1d
+        data_generator: |
+          return entity.attributes.daily_data_crec ?
+            Object.entries(entity.attributes.daily_data_crec).map(([date, value]) => {
+              return [new Date(date).getTime(), value];
+            }).slice(-30) : [];
+        show:
+          in_header: true
+          legend_value: true
+      - entity: sensor.counter_point_1_consumer
+        name: Netz
+        type: column
+        color: "#FF9800"
+        group_by:
+          func: last
+          duration: 1d
+        data_generator: |
+          return entity.attributes.daily_data_cgrid ?
+            Object.entries(entity.attributes.daily_data_cgrid).map(([date, value]) => {
+              return [new Date(date).getTime(), value];
+            }).slice(-30) : [];
+        show:
+          in_header: true
+          legend_value: true
+      # Linie für Prozentsatz aus Gemeinschaft
+      - entity: sensor.counter_point_1_consumer
+        name: "% Gemeinschaft"
+        type: line
+        color: "#00BCD4"
+        stroke_width: 3
+        yaxis_id: percentage
+        group_by:
+          func: last
+          duration: 1d
+        data_generator: |
+          const crec = entity.attributes.daily_data_crec || {};
+          const ctotal = entity.attributes.daily_data_ctotal || {};
+          return Object.entries(crec).map(([date, crecValue]) => {
+            const totalValue = ctotal[date] || 0;
+            const percentage = totalValue > 0 ? (crecValue / totalValue) * 100 : 0;
+            return [new Date(date).getTime(), Math.round(percentage * 10) / 10];
+          }).slice(-30);
+        show:
+          in_header: true
+          legend_value: true
+    apex_config:
+      chart:
+        height: 350px
+        stacked: false
+      plotOptions:
+        bar:
+          columnWidth: "80%"
+      dataLabels:
+        enabled: false
+      stroke:
+        width: [0, 0, 3]
+        curve: smooth
+      yaxis:
+        - title:
+            text: "Energie (kWh)"
+          decimals: 1
+          min: 0
+        - opposite: true
+          title:
+            text: "Anteil Gemeinschaft (%)"
+          decimals: 0
+          min: 0
+          max: 100
+      xaxis:
+        type: datetime
+      tooltip:
+        shared: true
+        intersect: false
+        x:
+          format: "dd.MM.yyyy"
+        y:
+          formatter: |
+            EVAL:function(value, { seriesIndex }) {
+              if (seriesIndex === 2) {
+                return value.toFixed(1) + '%';
+              }
+              return value.toFixed(2) + ' kWh';
+            }
+      legend:
+        show: true
+        position: top
+
+  # ==========================================
+  # KARTE 2: Einspeisung mit Prozentanzeige
+  # ==========================================
+  - type: custom:apexcharts-card
+    header:
+      show: true
+      title: Meine tägliche Einspeisung (letzte 30 Tage)
+      show_states: true
+      colorize_states: true
+    graph_span: 30d
+    span:
+      end: day
+      offset: "-2d"
+    now:
+      show: true
+      label: Heute
+    series:
+      # Gestapelte Balken für absolute Werte
+      - entity: sensor.counter_point_2_producer
+        name: Gemeinschaft
+        type: column
+        color: "#2196F3"
+        group_by:
+          func: last
+          duration: 1d
+        data_generator: |
+          return entity.attributes.daily_data_frec ?
+            Object.entries(entity.attributes.daily_data_frec).map(([date, value]) => {
+              return [new Date(date).getTime(), value];
+            }).slice(-30) : [];
+        show:
+          in_header: true
+          legend_value: true
+      - entity: sensor.counter_point_2_producer
+        name: Netz
+        type: column
+        color: "#9C27B0"
+        group_by:
+          func: last
+          duration: 1d
+        data_generator: |
+          return entity.attributes.daily_data_fgrid ?
+            Object.entries(entity.attributes.daily_data_fgrid).map(([date, value]) => {
+              return [new Date(date).getTime(), value];
+            }).slice(-30) : [];
+        show:
+          in_header: true
+          legend_value: true
+      # Linie für Prozentsatz in Gemeinschaft
+      - entity: sensor.counter_point_2_producer
+        name: "% in Gemeinschaft"
+        type: line
+        color: "#00BCD4"
+        stroke_width: 3
+        yaxis_id: percentage
+        group_by:
+          func: last
+          duration: 1d
+        data_generator: |
+          const frec = entity.attributes.daily_data_frec || {};
+          const ftotal = entity.attributes.daily_data_ftotal || {};
+          return Object.entries(frec).map(([date, frecValue]) => {
+            const totalValue = ftotal[date] || 0;
+            const percentage = totalValue > 0 ? (frecValue / totalValue) * 100 : 0;
+            return [new Date(date).getTime(), Math.round(percentage * 10) / 10];
+          }).slice(-30);
+        show:
+          in_header: true
+          legend_value: true
+    apex_config:
+      chart:
+        height: 350px
+        stacked: false
+      plotOptions:
+        bar:
+          columnWidth: "80%"
+      dataLabels:
+        enabled: false
+      stroke:
+        width: [0, 0, 3]
+        curve: smooth
+      yaxis:
+        - title:
+            text: "Energie (kWh)"
+          decimals: 1
+          min: 0
+        - opposite: true
+          title:
+            text: "Anteil in Gemeinschaft (%)"
+          decimals: 0
+          min: 0
+          max: 100
+      xaxis:
+        type: datetime
+      tooltip:
+        shared: true
+        intersect: false
+        x:
+          format: "dd.MM.yyyy"
+        y:
+          formatter: |
+            EVAL:function(value, { seriesIndex }) {
+              if (seriesIndex === 2) {
+                return value.toFixed(1) + '%';
+              }
+              return value.toFixed(2) + ' kWh';
+            }
+      legend:
+        show: true
+        position: top
+
+  # ==========================================
+  # KARTE 3: Gemeinschafts-Übersicht
+  # ==========================================
+  - type: custom:apexcharts-card
+    header:
+      show: true
+      title: Energiegemeinschaft Gesamt (letzte 30 Tage)
+      show_states: true
+      colorize_states: true
+    graph_span: 30d
+    span:
+      end: day
+      offset: "-2d"
+    now:
+      show: true
+      label: Heute
+    series:
+      - entity: sensor.fronius_energiegemeinschaft_total_feed_in
+        name: Erzeugung
+        type: column
+        color: "#4CAF50"
+        data_generator: |
+          return entity.attributes.daily_data ?
+            Object.entries(entity.attributes.daily_data).map(([date, value]) => {
+              return [new Date(date).getTime(), value];
+            }).slice(-30) : [];
+        show:
+          in_header: true
+          legend_value: true
+      - entity: sensor.fronius_energiegemeinschaft_total_consumption
+        name: Verbrauch
+        type: column
+        color: "#FF5722"
+        data_generator: |
+          return entity.attributes.daily_data ?
+            Object.entries(entity.attributes.daily_data).map(([date, value]) => {
+              return [new Date(date).getTime(), value];
+            }).slice(-30) : [];
+        show:
+          in_header: true
+          legend_value: true
+    apex_config:
+      chart:
+        height: 300px
+      plotOptions:
+        bar:
+          columnWidth: "80%"
+      dataLabels:
+        enabled: false
+      yaxis:
+        title:
+          text: "Energie (kWh)"
+      xaxis:
+        type: datetime
+      tooltip:
+        x:
+          format: "dd.MM.yyyy"
+      legend:
+        show: true
+        position: top
