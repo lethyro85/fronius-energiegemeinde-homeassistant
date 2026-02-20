@@ -1,0 +1,231 @@
+# Fronius Energiegemeinschaft - Persönliche Daten Dashboard
+# Diese Konfiguration zeigt IHRE persönlichen Verbrauchs- und Einspeisedaten
+#
+# Installation:
+# 1. Kopieren Sie diese Karten in Ihr Lovelace Dashboard
+# 2. Passen Sie die entity-IDs an falls nötig (counter_point_1_consumer und counter_point_2_producer)
+# 3. Hinweis: Die Daten sind ca. 2 Tage verzögert (Smart Meter Datenübermittlung)
+
+# ==========================================
+# KARTE 1: Ihr täglicher Verbrauch (30 Tage)
+# ==========================================
+# Zeigt Ihren persönlichen Stromverbrauch aufgeteilt nach:
+# - Strom aus der Energiegemeinschaft (crec)
+# - Strom aus dem öffentlichen Netz (cgrid)
+
+type: custom:apexcharts-card
+header:
+  show: true
+  title: 'Mein täglicher Verbrauch (letzte 30 Tage)'
+  show_states: true
+  colorize_states: true
+graph_span: 30d
+span:
+  end: day
+  offset: '-2d'
+now:
+  show: true
+  label: Heute
+series:
+  - entity: sensor.counter_point_1_consumer
+    name: Gemeinschaft
+    type: column
+    color: '#4CAF50'
+    data_generator: |
+      return entity.attributes.daily_data_crec ?
+        Object.entries(entity.attributes.daily_data_crec).map(([date, value]) => {
+          return [new Date(date).getTime(), value];
+        }).slice(-30) : [];
+    show:
+      in_header: true
+      legend_value: true
+
+  - entity: sensor.counter_point_1_consumer
+    name: Netz
+    type: column
+    color: '#FF9800'
+    data_generator: |
+      return entity.attributes.daily_data_cgrid ?
+        Object.entries(entity.attributes.daily_data_cgrid).map(([date, value]) => {
+          return [new Date(date).getTime(), value];
+        }).slice(-30) : [];
+    show:
+      in_header: true
+      legend_value: true
+
+apex_config:
+  chart:
+    height: 300px
+  plotOptions:
+    bar:
+      columnWidth: '80%'
+  dataLabels:
+    enabled: false
+  yaxis:
+    title:
+      text: 'Energie (kWh)'
+  xaxis:
+    type: datetime
+  tooltip:
+    x:
+      format: 'dd.MM.yyyy'
+  legend:
+    show: true
+    position: top
+
+# ==========================================
+# KARTE 2: Ihre tägliche Einspeisung (30 Tage)
+# ==========================================
+# Zeigt Ihre persönliche Stromeinspeisung aufgeteilt nach:
+# - Strom in die Energiegemeinschaft (frec)
+# - Strom ins öffentliche Netz (fgrid)
+
+---
+type: custom:apexcharts-card
+header:
+  show: true
+  title: 'Meine tägliche Einspeisung (letzte 30 Tage)'
+  show_states: true
+  colorize_states: true
+graph_span: 30d
+span:
+  end: day
+  offset: '-2d'
+now:
+  show: true
+  label: Heute
+series:
+  - entity: sensor.counter_point_2_producer
+    name: Gemeinschaft
+    type: column
+    color: '#2196F3'
+    data_generator: |
+      return entity.attributes.daily_data_frec ?
+        Object.entries(entity.attributes.daily_data_frec).map(([date, value]) => {
+          return [new Date(date).getTime(), value];
+        }).slice(-30) : [];
+    show:
+      in_header: true
+      legend_value: true
+
+  - entity: sensor.counter_point_2_producer
+    name: Netz
+    type: column
+    color: '#9C27B0'
+    data_generator: |
+      return entity.attributes.daily_data_fgrid ?
+        Object.entries(entity.attributes.daily_data_fgrid).map(([date, value]) => {
+          return [new Date(date).getTime(), value];
+        }).slice(-30) : [];
+    show:
+      in_header: true
+      legend_value: true
+
+apex_config:
+  chart:
+    height: 300px
+  plotOptions:
+    bar:
+      columnWidth: '80%'
+  dataLabels:
+    enabled: false
+  yaxis:
+    title:
+      text: 'Energie (kWh)'
+  xaxis:
+    type: datetime
+  tooltip:
+    x:
+      format: 'dd.MM.yyyy'
+  legend:
+    show: true
+    position: top
+
+# ==========================================
+# KARTE 3: Gemeinschafts-Übersicht (30 Tage)
+# ==========================================
+# Zeigt die Gesamtbilanz der Energiegemeinschaft:
+# - Total eingespeist (ftotal)
+# - Total verbraucht (ctotal)
+
+---
+type: custom:apexcharts-card
+header:
+  show: true
+  title: 'Energiegemeinschaft Gesamt (letzte 30 Tage)'
+  show_states: true
+  colorize_states: true
+graph_span: 30d
+span:
+  end: day
+  offset: '-2d'
+now:
+  show: true
+  label: Heute
+series:
+  - entity: sensor.fronius_energiegemeinschaft_total_feed_in
+    name: Erzeugung
+    type: column
+    color: '#4CAF50'
+    data_generator: |
+      return entity.attributes.daily_data ?
+        Object.entries(entity.attributes.daily_data).map(([date, value]) => {
+          return [new Date(date).getTime(), value];
+        }).slice(-30) : [];
+    show:
+      in_header: true
+      legend_value: true
+
+  - entity: sensor.fronius_energiegemeinschaft_total_consumption
+    name: Verbrauch
+    type: column
+    color: '#FF5722'
+    data_generator: |
+      return entity.attributes.daily_data ?
+        Object.entries(entity.attributes.daily_data).map(([date, value]) => {
+          return [new Date(date).getTime(), value];
+        }).slice(-30) : [];
+    show:
+      in_header: true
+      legend_value: true
+
+apex_config:
+  chart:
+    height: 300px
+  plotOptions:
+    bar:
+      columnWidth: '80%'
+  dataLabels:
+    enabled: false
+  yaxis:
+    title:
+      text: 'Energie (kWh)'
+  xaxis:
+    type: datetime
+  tooltip:
+    x:
+      format: 'dd.MM.yyyy'
+  legend:
+    show: true
+    position: top
+
+# ==========================================
+# INFORMATIONEN
+# ==========================================
+#
+# Counter Point Sensoren:
+# - sensor.counter_point_1_consumer = Ihr Verbrauchszähler
+# - sensor.counter_point_2_producer = Ihr Erzeugungszähler
+#
+# Verfügbare Attribute (nach Update):
+# - daily_data_crec: Täglicher Verbrauch aus Gemeinschaft
+# - daily_data_cgrid: Täglicher Verbrauch aus Netz
+# - daily_data_ctotal: Täglicher Gesamtverbrauch
+# - daily_data_frec: Tägliche Einspeisung in Gemeinschaft
+# - daily_data_fgrid: Tägliche Einspeisung ins Netz
+# - daily_data_ftotal: Tägliche Gesamteinspeisung
+#
+# Datenaktualisierung:
+# - Die Integration aktualisiert alle 5 Minuten
+# - Die angezeigten Daten sind ca. 2 Tage alt (Smart Meter Verzögerung)
+# - Die Grafiken zeigen die letzten 30 verfügbaren Tage

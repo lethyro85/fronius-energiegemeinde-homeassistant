@@ -245,6 +245,34 @@ class FroniusCounterPointSensor(CoordinatorEntity, SensorEntity):
             energy_data = cp_data.get("energy", {})
             total_data = energy_data.get("total", {}).get("total", {})
 
+            # Get daily data from the energy_data
+            daily_data_crec = {}
+            daily_data_cgrid = {}
+            daily_data_ctotal = {}
+            daily_data_frec = {}
+            daily_data_fgrid = {}
+            daily_data_ftotal = {}
+
+            raw_data = energy_data.get("data", {}).get("total", {})
+            for date_str, values in raw_data.items():
+                # Extract just the date part (YYYY-MM-DD)
+                date_only = date_str.split("T")[0]
+
+                # Extract all data keys
+                for key, daily_dict in [
+                    ("crec", daily_data_crec),
+                    ("cgrid", daily_data_cgrid),
+                    ("ctotal", daily_data_ctotal),
+                    ("frec", daily_data_frec),
+                    ("fgrid", daily_data_fgrid),
+                    ("ftotal", daily_data_ftotal),
+                ]:
+                    if key in values:
+                        try:
+                            daily_dict[date_only] = float(values[key])
+                        except (ValueError, TypeError):
+                            pass
+
             return {
                 "counter_point_id": self._cp_id,
                 "counter_number": self._cp_number,
@@ -257,6 +285,18 @@ class FroniusCounterPointSensor(CoordinatorEntity, SensorEntity):
                 "fgrid": total_data.get("fgrid"),
                 "ftotal": total_data.get("ftotal"),
                 "unit": energy_data.get("meta", {}).get("unit", "kWh"),
+                "daily_data_crec": daily_data_crec,
+                "daily_data_cgrid": daily_data_cgrid,
+                "daily_data_ctotal": daily_data_ctotal,
+                "daily_data_frec": daily_data_frec,
+                "daily_data_fgrid": daily_data_fgrid,
+                "daily_data_ftotal": daily_data_ftotal,
+                "last_30_days_crec": list(daily_data_crec.values())[-30:] if daily_data_crec else [],
+                "last_30_days_cgrid": list(daily_data_cgrid.values())[-30:] if daily_data_cgrid else [],
+                "last_30_days_ctotal": list(daily_data_ctotal.values())[-30:] if daily_data_ctotal else [],
+                "last_30_days_frec": list(daily_data_frec.values())[-30:] if daily_data_frec else [],
+                "last_30_days_fgrid": list(daily_data_fgrid.values())[-30:] if daily_data_fgrid else [],
+                "last_30_days_ftotal": list(daily_data_ftotal.values())[-30:] if daily_data_ftotal else [],
             }
         except (KeyError, TypeError):
             return {}
