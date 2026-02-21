@@ -16,6 +16,15 @@ from .const import (
     UPDATE_INTERVAL,
     DATA_COORDINATOR,
     DATA_CLIENT,
+    DATA_PRICING,
+    CONF_PRICE_GRID_CONSUMPTION,
+    CONF_PRICE_COMMUNITY_CONSUMPTION,
+    CONF_PRICE_GRID_FEED_IN,
+    CONF_PRICE_COMMUNITY_FEED_IN,
+    DEFAULT_PRICE_GRID_CONSUMPTION,
+    DEFAULT_PRICE_COMMUNITY_CONSUMPTION,
+    DEFAULT_PRICE_GRID_FEED_IN,
+    DEFAULT_PRICE_COMMUNITY_FEED_IN,
 )
 from .api_client import FroniusEnergyClient
 
@@ -30,6 +39,28 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     username = entry.data[CONF_USERNAME]
     password = entry.data[CONF_PASSWORD]
+
+    # Get pricing from options (preferred) or data (fallback for upgrades)
+    pricing = {
+        "grid_consumption": entry.options.get(
+            CONF_PRICE_GRID_CONSUMPTION,
+            entry.data.get(CONF_PRICE_GRID_CONSUMPTION, DEFAULT_PRICE_GRID_CONSUMPTION),
+        ),
+        "community_consumption": entry.options.get(
+            CONF_PRICE_COMMUNITY_CONSUMPTION,
+            entry.data.get(
+                CONF_PRICE_COMMUNITY_CONSUMPTION, DEFAULT_PRICE_COMMUNITY_CONSUMPTION
+            ),
+        ),
+        "grid_feed_in": entry.options.get(
+            CONF_PRICE_GRID_FEED_IN,
+            entry.data.get(CONF_PRICE_GRID_FEED_IN, DEFAULT_PRICE_GRID_FEED_IN),
+        ),
+        "community_feed_in": entry.options.get(
+            CONF_PRICE_COMMUNITY_FEED_IN,
+            entry.data.get(CONF_PRICE_COMMUNITY_FEED_IN, DEFAULT_PRICE_COMMUNITY_FEED_IN),
+        ),
+    }
 
     client = FroniusEnergyClient(username, password, hass)
 
@@ -95,11 +126,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN][entry.entry_id] = {
         DATA_COORDINATOR: coordinator,
         DATA_CLIENT: client,
+        DATA_PRICING: pricing,
     }
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
+    # Register update listener for options changes
+    entry.async_on_unload(entry.add_update_listener(update_listener))
+
     return True
+
+
+async def update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Handle options update."""
+    await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

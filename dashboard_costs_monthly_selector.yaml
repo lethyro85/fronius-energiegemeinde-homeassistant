@@ -1,0 +1,124 @@
+# Dashboard: Monatsstatistik mit Auswahl
+# Detaillierte Monatsstatistik mit Vergleich
+#
+# Voraussetzungen:
+# - ApexCharts Card installiert (HACS)
+# - Cost Sensoren erstellt (automatisch ab v0.2.0)
+#
+# Diese Konfiguration zeigt:
+# - Monatliche Kosten im Vergleich
+# - Aufschlüsselung der Kosten
+# - Trend über mehrere Monate
+#
+# Installation:
+# Kopieren Sie diese Konfiguration in eine Dashboard-Karte
+
+type: vertical-stack
+cards:
+  # Monatliche Übersichtskarte
+  - type: entities
+    title: Monatsübersicht
+    entities:
+      - entity: sensor.counter_point_1_consumer_monthly_cost
+        name: Aktuelle Monatskosten
+      - type: attribute
+        entity: sensor.counter_point_1_consumer_monthly_cost
+        attribute: monthly_costs_breakdown
+        name: Detailaufschlüsselung
+
+  # Monatsvergleich Chart
+  - type: custom:apexcharts-card
+    header:
+      show: true
+      title: Monatsvergleich (letzte 12 Monate)
+      show_states: true
+    graph_span: 12months
+    span:
+      end: month
+    series:
+      # Verbrauchskosten
+      - entity: sensor.counter_point_1_consumer_monthly_cost
+        name: Verbrauch
+        type: column
+        color: "#FF9800"
+        data_generator: |
+          const breakdown = entity.attributes.monthly_costs_breakdown;
+          if (!breakdown) return [];
+          return Object.entries(breakdown).map(([month, data]) => {
+            const cost = data.grid_consumption_cost + data.community_consumption_cost;
+            return [new Date(month + '-01').getTime(), cost.toFixed(2)];
+          });
+      # Einspeisevergütung
+      - entity: sensor.counter_point_1_consumer_monthly_cost
+        name: Gutschrift
+        type: column
+        color: "#4CAF50"
+        data_generator: |
+          const breakdown = entity.attributes.monthly_costs_breakdown;
+          if (!breakdown) return [];
+          return Object.entries(breakdown).map(([month, data]) => {
+            const revenue = data.grid_feed_in_revenue + data.community_feed_in_revenue;
+            return [new Date(month + '-01').getTime(), -revenue.toFixed(2)];
+          });
+      # Nettokosten
+      - entity: sensor.counter_point_1_consumer_monthly_cost
+        name: Netto
+        type: line
+        color: "#2196F3"
+        stroke_width: 3
+        data_generator: |
+          const costs = entity.attributes.monthly_costs;
+          if (!costs) return [];
+          return Object.entries(costs).map(([month, cost]) => {
+            return [new Date(month + '-01').getTime(), cost.toFixed(2)];
+          });
+    apex_config:
+      chart:
+        height: 350px
+      plotOptions:
+        bar:
+          columnWidth: 70%
+      dataLabels:
+        enabled: true
+        formatter: |
+          EVAL:function(value) {
+            if (value === 0) return '';
+            return '€ ' + Math.abs(value).toFixed(0);
+          }
+      yaxis:
+        - title:
+            text: Kosten (€)
+          labels:
+            formatter: |
+              EVAL:function(value) {
+                return '€ ' + value.toFixed(0);
+              }
+      xaxis:
+        type: datetime
+        labels:
+          format: MMM yy
+      tooltip:
+        x:
+          format: MMMM yyyy
+        y:
+          formatter: |
+            EVAL:function(value) {
+              if (value < 0) {
+                return '€ ' + Math.abs(value).toFixed(2) + ' Gutschrift';
+              }
+              return '€ ' + value.toFixed(2);
+            }
+      legend:
+        show: true
+        position: top
+
+  # Jahreskosten Karte
+  - type: entities
+    title: Jahresübersicht
+    entities:
+      - entity: sensor.counter_point_1_consumer_yearly_cost
+        name: Aktuelle Jahreskosten
+      - type: attribute
+        entity: sensor.counter_point_1_consumer_yearly_cost
+        attribute: yearly_cost_breakdown
+        name: Jahresaufschlüsselung

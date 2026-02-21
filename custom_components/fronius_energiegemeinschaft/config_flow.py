@@ -8,12 +8,22 @@ import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 
 from .api_client import FroniusEnergyClient
-from .const import DOMAIN
+from .const import (
+    DOMAIN,
+    CONF_PRICE_GRID_CONSUMPTION,
+    CONF_PRICE_COMMUNITY_CONSUMPTION,
+    CONF_PRICE_GRID_FEED_IN,
+    CONF_PRICE_COMMUNITY_FEED_IN,
+    DEFAULT_PRICE_GRID_CONSUMPTION,
+    DEFAULT_PRICE_COMMUNITY_CONSUMPTION,
+    DEFAULT_PRICE_GRID_FEED_IN,
+    DEFAULT_PRICE_COMMUNITY_FEED_IN,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -21,6 +31,23 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_USERNAME): str,
         vol.Required(CONF_PASSWORD): str,
+    }
+)
+
+STEP_PRICING_DATA_SCHEMA = vol.Schema(
+    {
+        vol.Required(
+            CONF_PRICE_GRID_CONSUMPTION, default=DEFAULT_PRICE_GRID_CONSUMPTION
+        ): vol.All(vol.Coerce(float), vol.Range(min=0, max=100)),
+        vol.Required(
+            CONF_PRICE_COMMUNITY_CONSUMPTION, default=DEFAULT_PRICE_COMMUNITY_CONSUMPTION
+        ): vol.All(vol.Coerce(float), vol.Range(min=0, max=100)),
+        vol.Required(
+            CONF_PRICE_GRID_FEED_IN, default=DEFAULT_PRICE_GRID_FEED_IN
+        ): vol.All(vol.Coerce(float), vol.Range(min=0, max=100)),
+        vol.Required(
+            CONF_PRICE_COMMUNITY_FEED_IN, default=DEFAULT_PRICE_COMMUNITY_FEED_IN
+        ): vol.All(vol.Coerce(float), vol.Range(min=0, max=100)),
     }
 )
 
@@ -50,6 +77,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
+    def __init__(self) -> None:
+        """Initialize the config flow."""
+        self._user_data: dict[str, Any] = {}
+
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
@@ -65,11 +96,97 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
             else:
-                return self.async_create_entry(title=info["title"], data=user_input)
+                # Store credentials and proceed to pricing step
+                self._user_data = user_input
+                return await self.async_step_pricing()
 
         return self.async_show_form(
             step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
         )
+
+    async def async_step_pricing(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Handle the pricing configuration step."""
+        if user_input is not None:
+            # Combine user credentials and pricing data
+            data = {**self._user_data, **user_input}
+            title = f"Fronius Energiegemeinschaft ({self._user_data[CONF_USERNAME]})"
+            return self.async_create_entry(title=title, data=data)
+
+        return self.async_show_form(
+            step_id="pricing", data_schema=STEP_PRICING_DATA_SCHEMA
+        )
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> OptionsFlowHandler:
+        """Get the options flow for this handler."""
+        return OptionsFlowHandler(config_entry)
+
+
+class OptionsFlowHandler(config_entries.OptionsFlow):
+    """Handle options flow for Fronius Energiegemeinschaft."""
+
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        """Initialize options flow."""
+        self.config_entry = config_entry
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Manage the options."""
+        if user_input is not None:
+            return self.async_create_entry(title="", data=user_input)
+
+        # Get current values from config entry
+        current_grid_consumption = self.config_entry.options.get(
+            CONF_PRICE_GRID_CONSUMPTION,
+            self.config_entry.data.get(
+                CONF_PRICE_GRID_CONSUMPTION, DEFAULT_PRICE_GRID_CONSUMPTION
+            ),
+        )
+        current_community_consumption = self.config_entry.options.get(
+            CONF_PRICE_COMMUNITY_CONSUMPTION,
+            self.config_entry.data.get(
+                CONF_PRICE_COMMUNITY_CONSUMPTION, DEFAULT_PRICE_COMMUNITY_CONSUMPTION
+            ),
+        )
+        current_grid_feed_in = self.config_entry.options.get(
+            CONF_PRICE_GRID_FEED_IN,
+            self.config_entry.data.get(
+                CONF_PRICE_GRID_FEED_IN, DEFAULT_PRICE_GRID_FEED_IN
+            ),
+        )
+        current_community_feed_in = self.config_entry.options.get(
+            CONF_PRICE_COMMUNITY_FEED_IN,
+            self.config_entry.data.get(
+                CONF_PRICE_COMMUNITY_FEED_IN, DEFAULT_PRICE_COMMUNITY_FEED_IN
+            ),
+        )
+
+        # Build schema with current values
+        options_schema = vol.Schema(
+            {
+                vol.Required(
+                    CONF_PRICE_GRID_CONSUMPTION, default=current_grid_consumption
+                ): vol.All(vol.Coerce(float), vol.Range(min=0, max=100)),
+                vol.Required(
+                    CONF_PRICE_COMMUNITY_CONSUMPTION,
+                    default=current_community_consumption,
+                ): vol.All(vol.Coerce(float), vol.Range(min=0, max=100)),
+                vol.Required(
+                    CONF_PRICE_GRID_FEED_IN, default=current_grid_feed_in
+                ): vol.All(vol.Coerce(float), vol.Range(min=0, max=100)),
+                vol.Required(
+                    CONF_PRICE_COMMUNITY_FEED_IN, default=current_community_feed_in
+                ): vol.All(vol.Coerce(float), vol.Range(min=0, max=100)),
+            }
+        )
+
+        return self.async_show_form(step_id="init", data_schema=options_schema)
 
 
 class InvalidAuth(HomeAssistantError):

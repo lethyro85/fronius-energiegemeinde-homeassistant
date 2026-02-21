@@ -1,0 +1,99 @@
+# Dashboard: Monatliche Kostenübersicht
+# Zeigt monatliche Kosten mit Aufschlüsselung Netz vs. Gemeinde
+#
+# Voraussetzungen:
+# - ApexCharts Card installiert (HACS)
+# - Cost Sensoren erstellt (automatisch ab v0.2.0)
+#
+# Installation:
+# Kopieren Sie diese Konfiguration in eine Dashboard-Karte
+
+type: custom:apexcharts-card
+header:
+  show: true
+  title: Monatliche Stromkosten
+  show_states: true
+  colorize_states: true
+graph_span: 12months
+span:
+  end: month
+now:
+  show: true
+  label: Aktueller Monat
+series:
+  # Netzanbieter Kosten
+  - entity: sensor.counter_point_1_consumer_monthly_cost
+    name: Netzanbieter
+    type: column
+    color: "#FF5722"
+    data_generator: |
+      const breakdown = entity.attributes.monthly_costs_breakdown;
+      if (!breakdown) return [];
+      return Object.entries(breakdown).map(([month, data]) => {
+        const cost = data.grid_consumption_cost - data.grid_feed_in_revenue;
+        return [new Date(month + '-01').getTime(), cost.toFixed(2)];
+      });
+    show:
+      in_header: true
+      legend_value: true
+  # Gemeinde Kosten
+  - entity: sensor.counter_point_1_consumer_monthly_cost
+    name: Gemeinde
+    type: column
+    color: "#4CAF50"
+    data_generator: |
+      const breakdown = entity.attributes.monthly_costs_breakdown;
+      if (!breakdown) return [];
+      return Object.entries(breakdown).map(([month, data]) => {
+        const cost = data.community_consumption_cost - data.community_feed_in_revenue;
+        return [new Date(month + '-01').getTime(), cost.toFixed(2)];
+      });
+    show:
+      in_header: true
+      legend_value: true
+  # Gesamtkosten als Linie
+  - entity: sensor.counter_point_1_consumer_monthly_cost
+    name: Gesamt
+    type: line
+    color: "#2196F3"
+    stroke_width: 3
+    data_generator: |
+      const costs = entity.attributes.monthly_costs;
+      if (!costs) return [];
+      return Object.entries(costs).map(([month, cost]) => {
+        return [new Date(month + '-01').getTime(), cost.toFixed(2)];
+      });
+    show:
+      in_header: true
+      legend_value: true
+apex_config:
+  chart:
+    height: 350px
+  plotOptions:
+    bar:
+      columnWidth: 60%
+  dataLabels:
+    enabled: false
+  yaxis:
+    - title:
+        text: Kosten (€)
+      labels:
+        formatter: |
+          EVAL:function(value) {
+            return '€ ' + value.toFixed(2);
+          }
+  xaxis:
+    type: datetime
+    labels:
+      format: MMM yyyy
+  tooltip:
+    x:
+      format: MMMM yyyy
+    y:
+      formatter: |
+        EVAL:function(value) {
+          return '€ ' + value.toFixed(2);
+        }
+  legend:
+    show: true
+    position: top

@@ -7,6 +7,8 @@ Integration für Home Assistant zur Anbindung des Fronius Energiegemeinschafts-P
 ✅ Automatischer Abruf der Energiedaten
 ✅ Unterstützung für mehrere Energiegemeinschaften
 ✅ Unterstützung für mehrere Zählpunkte
+✅ **NEU:** Kosten-Tracking mit konfigurierbaren Strompreisen
+✅ **NEU:** Tägliche, monatliche und jährliche Kostenberechnung
 ✅ Automatische Aktualisierung alle 5 Minuten
 ✅ Einfache Konfiguration über die UI
 ✅ Deutsche Übersetzung
@@ -26,6 +28,12 @@ Die Integration erstellt automatisch Sensoren für:
 ### Zählpunkt-Daten
 Für jeden Zählpunkt (Consumer/Producer) werden individuelle Sensoren erstellt.
 
+### Kosten-Sensoren (ab v0.2.0)
+- **Daily Cost** - Tageskosten mit Aufschlüsselung
+- **Monthly Cost** - Monatliche Gesamtkosten
+- **Yearly Cost** - Jährliche Gesamtkosten
+- Automatische Berechnung basierend auf konfigurierten Strompreisen
+
 ## Installation
 
 Nach der Installation über HACS:
@@ -35,6 +43,7 @@ Nach der Installation über HACS:
 3. Klicken Sie auf **+ Integration hinzufügen**
 4. Suchen Sie nach "Fronius Energiegemeinschaft"
 5. Geben Sie Ihre Anmeldedaten ein
+6. **Neu ab v0.2.0:** Konfigurieren Sie Ihre Strompreise
 
 ## Konfiguration
 

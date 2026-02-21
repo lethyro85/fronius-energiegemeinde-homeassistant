@@ -1,0 +1,120 @@
+# Dashboard: Tägliche Kostendetails
+# Zeigt tägliche Kosten der letzten 30 Tage mit detaillierter Aufschlüsselung
+#
+# Voraussetzungen:
+# - ApexCharts Card installiert (HACS)
+# - Cost Sensoren erstellt (automatisch ab v0.2.0)
+#
+# Installation:
+# Kopieren Sie diese Konfiguration in eine Dashboard-Karte
+
+type: custom:apexcharts-card
+header:
+  show: true
+  title: Tägliche Stromkosten (letzte 30 Tage)
+  show_states: true
+  colorize_states: true
+graph_span: 30d
+span:
+  end: day
+  offset: "-2d"
+now:
+  show: true
+  label: Heute
+series:
+  # Netzanbieter Verbrauch
+  - entity: sensor.counter_point_1_consumer_daily_cost
+    name: Netz Verbrauch
+    type: column
+    color: "#FF5722"
+    data_generator: |
+      const breakdown = entity.attributes.daily_costs_breakdown;
+      if (!breakdown) return [];
+      return Object.entries(breakdown).map(([date, data]) => {
+        return [new Date(date).getTime(), data.grid_consumption_cost];
+      }).slice(-30);
+    show:
+      in_header: true
+      legend_value: true
+  # Gemeinde Verbrauch
+  - entity: sensor.counter_point_1_consumer_daily_cost
+    name: Gemeinde Verbrauch
+    type: column
+    color: "#4CAF50"
+    data_generator: |
+      const breakdown = entity.attributes.daily_costs_breakdown;
+      if (!breakdown) return [];
+      return Object.entries(breakdown).map(([date, data]) => {
+        return [new Date(date).getTime(), data.community_consumption_cost];
+      }).slice(-30);
+    show:
+      in_header: true
+      legend_value: true
+  # Einspeisung (negativ)
+  - entity: sensor.counter_point_1_consumer_daily_cost
+    name: Einspeisung
+    type: column
+    color: "#9C27B0"
+    data_generator: |
+      const breakdown = entity.attributes.daily_costs_breakdown;
+      if (!breakdown) return [];
+      return Object.entries(breakdown).map(([date, data]) => {
+        const revenue = data.grid_feed_in_revenue + data.community_feed_in_revenue;
+        return [new Date(date).getTime(), -revenue];
+      }).slice(-30);
+    show:
+      in_header: true
+      legend_value: true
+  # Nettokosten als Linie
+  - entity: sensor.counter_point_1_consumer_daily_cost
+    name: Netto
+    type: line
+    color: "#2196F3"
+    stroke_width: 3
+    data_generator: |
+      const costs = entity.attributes.daily_costs;
+      if (!costs) return [];
+      return Object.entries(costs).map(([date, cost]) => {
+        return [new Date(date).getTime(), cost];
+      }).slice(-30);
+    show:
+      in_header: true
+      legend_value: true
+apex_config:
+  chart:
+    height: 400px
+    stacked: false
+  plotOptions:
+    bar:
+      columnWidth: 80%
+  dataLabels:
+    enabled: false
+  yaxis:
+    - title:
+        text: Kosten (€)
+      labels:
+        formatter: |
+          EVAL:function(value) {
+            return '€ ' + value.toFixed(2);
+          }
+  xaxis:
+    type: datetime
+  tooltip:
+    x:
+      format: dd.MM.yyyy
+    y:
+      formatter: |
+        EVAL:function(value, opts) {
+          if (value < 0) {
+            return '€ ' + Math.abs(value).toFixed(2) + ' (Gutschrift)';
+          }
+          return '€ ' + value.toFixed(2);
+        }
+  legend:
+    show: true
+    position: top
+  annotations:
+    yaxis:
+      - y: 0
+        borderColor: '#999'
+        strokeDashArray: 3

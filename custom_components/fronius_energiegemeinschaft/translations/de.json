@@ -8,6 +8,16 @@
           "username": "E-Mail / Benutzername",
           "password": "Passwort"
         }
+      },
+      "pricing": {
+        "title": "Strompreise konfigurieren",
+        "description": "Geben Sie Ihre Strompreise ein (€/kWh)",
+        "data": {
+          "price_grid_consumption": "Netzanbieter Verbrauchspreis (€/kWh)",
+          "price_community_consumption": "Gemeinde Verbrauchspreis (€/kWh)",
+          "price_grid_feed_in": "Netzanbieter Einspeisepreis (€/kWh)",
+          "price_community_feed_in": "Gemeinde Einspeisepreis (€/kWh)"
+        }
       }
     },
     "error": {
@@ -16,6 +26,20 @@
     },
     "abort": {
       "already_configured": "Diese Integration ist bereits konfiguriert"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Strompreise ändern",
+        "description": "Aktualisieren Sie Ihre Strompreise (€/kWh)",
+        "data": {
+          "price_grid_consumption": "Netzanbieter Verbrauchspreis (€/kWh)",
+          "price_community_consumption": "Gemeinde Verbrauchspreis (€/kWh)",
+          "price_grid_feed_in": "Netzanbieter Einspeisepreis (€/kWh)",
+          "price_community_feed_in": "Gemeinde Einspeisepreis (€/kWh)"
+        }
+      }
     }
   }
 }
