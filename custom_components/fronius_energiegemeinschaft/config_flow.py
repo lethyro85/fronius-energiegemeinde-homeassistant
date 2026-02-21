@@ -34,22 +34,31 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
     }
 )
 
-STEP_PRICING_DATA_SCHEMA = vol.Schema(
-    {
-        vol.Required(
-            CONF_PRICE_GRID_CONSUMPTION, default=DEFAULT_PRICE_GRID_CONSUMPTION
-        ): vol.All(vol.Coerce(float), vol.Range(min=0, max=100)),
-        vol.Required(
-            CONF_PRICE_COMMUNITY_CONSUMPTION, default=DEFAULT_PRICE_COMMUNITY_CONSUMPTION
-        ): vol.All(vol.Coerce(float), vol.Range(min=0, max=100)),
-        vol.Required(
-            CONF_PRICE_GRID_FEED_IN, default=DEFAULT_PRICE_GRID_FEED_IN
-        ): vol.All(vol.Coerce(float), vol.Range(min=0, max=100)),
-        vol.Required(
-            CONF_PRICE_COMMUNITY_FEED_IN, default=DEFAULT_PRICE_COMMUNITY_FEED_IN
-        ): vol.All(vol.Coerce(float), vol.Range(min=0, max=100)),
-    }
-)
+def get_pricing_schema(defaults: dict | None = None) -> vol.Schema:
+    """Get pricing schema with optional defaults."""
+    if defaults is None:
+        defaults = {}
+
+    return vol.Schema(
+        {
+            vol.Required(
+                CONF_PRICE_GRID_CONSUMPTION,
+                default=defaults.get(CONF_PRICE_GRID_CONSUMPTION, DEFAULT_PRICE_GRID_CONSUMPTION)
+            ): vol.All(vol.Coerce(float), vol.Range(min=0, max=100)),
+            vol.Required(
+                CONF_PRICE_COMMUNITY_CONSUMPTION,
+                default=defaults.get(CONF_PRICE_COMMUNITY_CONSUMPTION, DEFAULT_PRICE_COMMUNITY_CONSUMPTION)
+            ): vol.All(vol.Coerce(float), vol.Range(min=0, max=100)),
+            vol.Required(
+                CONF_PRICE_GRID_FEED_IN,
+                default=defaults.get(CONF_PRICE_GRID_FEED_IN, DEFAULT_PRICE_GRID_FEED_IN)
+            ): vol.All(vol.Coerce(float), vol.Range(min=0, max=100)),
+            vol.Required(
+                CONF_PRICE_COMMUNITY_FEED_IN,
+                default=defaults.get(CONF_PRICE_COMMUNITY_FEED_IN, DEFAULT_PRICE_COMMUNITY_FEED_IN)
+            ): vol.All(vol.Coerce(float), vol.Range(min=0, max=100)),
+        }
+    )
 
 
 async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
@@ -115,7 +124,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_create_entry(title=title, data=data)
 
         return self.async_show_form(
-            step_id="pricing", data_schema=STEP_PRICING_DATA_SCHEMA
+            step_id="pricing", data_schema=get_pricing_schema()
         )
 
     @staticmethod
@@ -142,51 +151,36 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             return self.async_create_entry(title="", data=user_input)
 
         # Get current values from config entry
-        current_grid_consumption = self.config_entry.options.get(
-            CONF_PRICE_GRID_CONSUMPTION,
-            self.config_entry.data.get(
-                CONF_PRICE_GRID_CONSUMPTION, DEFAULT_PRICE_GRID_CONSUMPTION
+        current_values = {
+            CONF_PRICE_GRID_CONSUMPTION: self.config_entry.options.get(
+                CONF_PRICE_GRID_CONSUMPTION,
+                self.config_entry.data.get(
+                    CONF_PRICE_GRID_CONSUMPTION, DEFAULT_PRICE_GRID_CONSUMPTION
+                ),
             ),
-        )
-        current_community_consumption = self.config_entry.options.get(
-            CONF_PRICE_COMMUNITY_CONSUMPTION,
-            self.config_entry.data.get(
-                CONF_PRICE_COMMUNITY_CONSUMPTION, DEFAULT_PRICE_COMMUNITY_CONSUMPTION
+            CONF_PRICE_COMMUNITY_CONSUMPTION: self.config_entry.options.get(
+                CONF_PRICE_COMMUNITY_CONSUMPTION,
+                self.config_entry.data.get(
+                    CONF_PRICE_COMMUNITY_CONSUMPTION, DEFAULT_PRICE_COMMUNITY_CONSUMPTION
+                ),
             ),
-        )
-        current_grid_feed_in = self.config_entry.options.get(
-            CONF_PRICE_GRID_FEED_IN,
-            self.config_entry.data.get(
-                CONF_PRICE_GRID_FEED_IN, DEFAULT_PRICE_GRID_FEED_IN
+            CONF_PRICE_GRID_FEED_IN: self.config_entry.options.get(
+                CONF_PRICE_GRID_FEED_IN,
+                self.config_entry.data.get(
+                    CONF_PRICE_GRID_FEED_IN, DEFAULT_PRICE_GRID_FEED_IN
+                ),
             ),
-        )
-        current_community_feed_in = self.config_entry.options.get(
-            CONF_PRICE_COMMUNITY_FEED_IN,
-            self.config_entry.data.get(
-                CONF_PRICE_COMMUNITY_FEED_IN, DEFAULT_PRICE_COMMUNITY_FEED_IN
+            CONF_PRICE_COMMUNITY_FEED_IN: self.config_entry.options.get(
+                CONF_PRICE_COMMUNITY_FEED_IN,
+                self.config_entry.data.get(
+                    CONF_PRICE_COMMUNITY_FEED_IN, DEFAULT_PRICE_COMMUNITY_FEED_IN
+                ),
             ),
-        )
+        }
 
-        # Build schema with current values
-        options_schema = vol.Schema(
-            {
-                vol.Required(
-                    CONF_PRICE_GRID_CONSUMPTION, default=current_grid_consumption
-                ): vol.All(vol.Coerce(float), vol.Range(min=0, max=100)),
-                vol.Required(
-                    CONF_PRICE_COMMUNITY_CONSUMPTION,
-                    default=current_community_consumption,
-                ): vol.All(vol.Coerce(float), vol.Range(min=0, max=100)),
-                vol.Required(
-                    CONF_PRICE_GRID_FEED_IN, default=current_grid_feed_in
-                ): vol.All(vol.Coerce(float), vol.Range(min=0, max=100)),
-                vol.Required(
-                    CONF_PRICE_COMMUNITY_FEED_IN, default=current_community_feed_in
-                ): vol.All(vol.Coerce(float), vol.Range(min=0, max=100)),
-            }
+        return self.async_show_form(
+            step_id="init", data_schema=get_pricing_schema(current_values)
         )
-
-        return self.async_show_form(step_id="init", data_schema=options_schema)
 
 
 class InvalidAuth(HomeAssistantError):
