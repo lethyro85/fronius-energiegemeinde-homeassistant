@@ -10,7 +10,13 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfEnergy, CURRENCY_EURO
+from homeassistant.const import UnitOfEnergy
+
+# Try to import CURRENCY_EURO, fallback to string for older HA versions
+try:
+    from homeassistant.const import CURRENCY_EURO
+except ImportError:
+    CURRENCY_EURO = "€"
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import (

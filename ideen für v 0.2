@@ -1,0 +1,67 @@
+Hi, ich will das projekt erweitern und auf version 0.2 bringen.
+Im HACS steht beim bild noch "bild nicht gefunden". Da sollte weg.
+Außerdem sollen 4 Werte rein, wo genau weiß ich nicht.
+Das sind die Strompreise von Netzanbieter und Gemeinde, und das selbe für das einspeisen.
+Daraus könnten wir die Summe berechnen wo die einzelnen Monate Kosten und was an wen zu Zahlen ist.
+Im Dashboard hab ich folgendes bisher:
+
+type: custom:apexcharts-card
+header:
+  show: true
+  title: Mein täglicher Verbrauch (letzte 30 Tage)
+  show_states: true
+  colorize_states: true
+graph_span: 30d
+span:
+  end: day
+  offset: "-2d"
+now:
+  show: true
+  label: Heute
+series:
+  - entity: sensor.counter_point_1_consumer
+    name: Gemeinschaft
+    type: column
+    color: "#4CAF50"
+    data_generator: |
+      return entity.attributes.daily_data_crec ?
+        Object.entries(entity.attributes.daily_data_crec).map(([date, value]) => {
+          return [new Date(date).getTime(), value];
+        }).slice(-30) : [];
+    show:
+      in_header: true
+      legend_value: true
+  - entity: sensor.counter_point_1_consumer
+    name: Netz
+    type: column
+    color: "#FF9800"
+    data_generator: |
+      return entity.attributes.daily_data_cgrid ?
+        Object.entries(entity.attributes.daily_data_cgrid).map(([date, value]) => {
+          return [new Date(date).getTime(), value];
+        }).slice(-30) : [];
+    show:
+      in_header: true
+      legend_value: true
+apex_config:
+  chart:
+    height: 300px
+  plotOptions:
+    bar:
+      columnWidth: 80%
+  dataLabels:
+    enabled: false
+  yaxis:
+    title:
+      text: Energie (kWh)
+  xaxis:
+    type: datetime
+  tooltip:
+    x:
+      format: dd.MM.yyyy
+  legend:
+    show: true
+    position: top
+
+
+Ich möchte hier nun auch sehen können, was der laufende Monat kostet, grob aufgeschlüsselt. Wenn ich drauf klicke auf das, soll eine detailübersicht sein, wo ich für jeden tag die Preise sehe, wieviel von der Gemeinde kommt und eine Monatsstatistik wäre ebenfalls gut, diesesmal mit auswahl für andere Monate.
