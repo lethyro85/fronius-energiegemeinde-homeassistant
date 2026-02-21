@@ -160,6 +160,446 @@ entities:
   - entity: sensor.counter_point_1_consumer_yearly_cost
     name: Jahreskosten
 ```
+### Komplexe Dashboard-Karte
+
+```yaml
+type: custom:vertical-stack-in-card
+cards:
+  - type: custom:apexcharts-card
+    header:
+      show: true
+      title: Mein täglicher Verbrauch (letzte 30 Tage)
+      show_states: true
+      colorize_states: true
+    graph_span: 30d
+    span:
+      end: day
+      offset: "-2d"
+    now:
+      show: true
+      label: Heute
+    series:
+      - entity: sensor.counter_point_1_consumer
+        name: Gemeinschaft
+        type: column
+        color: "#4CAF50"
+        data_generator: |
+          return entity.attributes.daily_data_crec ?
+            Object.entries(entity.attributes.daily_data_crec).map(([date, value]) => {
+              return [new Date(date).getTime(), value];
+            }).slice(-30) : [];
+        show:
+          in_header: true
+          legend_value: true
+      - entity: sensor.counter_point_1_consumer
+        name: Netz
+        type: column
+        color: "#FF9800"
+        data_generator: |
+          return entity.attributes.daily_data_cgrid ?
+            Object.entries(entity.attributes.daily_data_cgrid).map(([date, value]) => {
+              return [new Date(date).getTime(), value];
+            }).slice(-30) : [];
+        show:
+          in_header: true
+          legend_value: true
+    apex_config:
+      chart:
+        height: 300px
+      plotOptions:
+        bar:
+          columnWidth: 80%
+      dataLabels:
+        enabled: false
+      yaxis:
+        title:
+          text: Energie (kWh)
+      xaxis:
+        type: datetime
+      tooltip:
+        x:
+          format: dd.MM.yyyy
+      legend:
+        show: true
+        position: top
+  - type: custom:apexcharts-card
+    header:
+      show: true
+      title: Meine tägliche Einspeisung (letzte 30 Tage)
+      show_states: true
+      colorize_states: true
+    graph_span: 30d
+    span:
+      end: day
+      offset: "-2d"
+    now:
+      show: true
+      label: Heute
+    series:
+      - entity: sensor.counter_point_2_producer
+        name: Gemeinschaft
+        type: column
+        color: "#2196F3"
+        data_generator: |
+          return entity.attributes.daily_data_frec ?
+            Object.entries(entity.attributes.daily_data_frec).map(([date, value]) => {
+              return [new Date(date).getTime(), value];
+            }).slice(-30) : [];
+        show:
+          in_header: true
+          legend_value: true
+      - entity: sensor.counter_point_2_producer
+        name: Netz
+        type: column
+        color: "#9C27B0"
+        data_generator: |
+          return entity.attributes.daily_data_fgrid ?
+            Object.entries(entity.attributes.daily_data_fgrid).map(([date, value]) => {
+              return [new Date(date).getTime(), value];
+            }).slice(-30) : [];
+        show:
+          in_header: true
+          legend_value: true
+    apex_config:
+      chart:
+        height: 300px
+      plotOptions:
+        bar:
+          columnWidth: 80%
+      dataLabels:
+        enabled: false
+      yaxis:
+        title:
+          text: Energie (kWh)
+      xaxis:
+        type: datetime
+      tooltip:
+        x:
+          format: dd.MM.yyyy
+      legend:
+        show: true
+        position: top
+  - type: custom:apexcharts-card
+    header:
+      show: true
+      title: Energiegemeinschaft Gesamt (letzte 30 Tage)
+      show_states: true
+      colorize_states: true
+    graph_span: 30d
+    span:
+      end: day
+      offset: "-2d"
+    now:
+      show: true
+      label: Heute
+    series:
+      - entity: sensor.fronius_energiegemeinschaft_total_feed_in
+        name: Erzeugung
+        type: column
+        color: "#4CAF50"
+        data_generator: |
+          return entity.attributes.daily_data ?
+            Object.entries(entity.attributes.daily_data).map(([date, value]) => {
+              return [new Date(date).getTime(), value];
+            }).slice(-30) : [];
+        show:
+          in_header: true
+          legend_value: true
+      - entity: sensor.fronius_energiegemeinschaft_total_consumption
+        name: Verbrauch
+        type: column
+        color: "#FF5722"
+        data_generator: |
+          return entity.attributes.daily_data ?
+            Object.entries(entity.attributes.daily_data).map(([date, value]) => {
+              return [new Date(date).getTime(), value];
+            }).slice(-30) : [];
+        show:
+          in_header: true
+          legend_value: true
+    apex_config:
+      chart:
+        height: 300px
+      plotOptions:
+        bar:
+          columnWidth: 80%
+      dataLabels:
+        enabled: false
+      yaxis:
+        title:
+          text: Energie (kWh)
+      xaxis:
+        type: datetime
+      tooltip:
+        x:
+          format: dd.MM.yyyy
+      legend:
+        show: true
+        position: top
+  - type: custom:apexcharts-card
+    header:
+      show: true
+      title: Tägliche Stromkosten (letzte 30 Tage)
+      show_states: true
+      colorize_states: true
+    graph_span: 30d
+    span:
+      end: day
+      offset: "-2d"
+    now:
+      show: true
+      label: Heute
+    series:
+      - entity: sensor.counter_point_1_daily_cost
+        name: Netz Verbrauch
+        type: column
+        color: "#FF5722"
+        data_generator: |
+          const breakdown = entity.attributes.daily_costs_breakdown;
+          if (!breakdown) return [];
+          return Object.entries(breakdown).map(([date, data]) => {
+            return [new Date(date).getTime(), data.grid_consumption_cost];
+          }).slice(-30);
+        show:
+          in_header: true
+          legend_value: true
+      - entity: sensor.counter_point_1_daily_cost
+        name: Gemeinde Verbrauch
+        type: column
+        color: "#4CAF50"
+        data_generator: |
+          const breakdown = entity.attributes.daily_costs_breakdown;
+          if (!breakdown) return [];
+          return Object.entries(breakdown).map(([date, data]) => {
+            return [new Date(date).getTime(), data.community_consumption_cost];
+          }).slice(-30);
+        show:
+          in_header: true
+          legend_value: true
+      - entity: sensor.counter_point_2_daily_cost
+        name: Einspeisung
+        type: column
+        color: "#9C27B0"
+        data_generator: |
+          const breakdown = entity.attributes.daily_costs_breakdown;
+          if (!breakdown) return [];
+          return Object.entries(breakdown).map(([date, data]) => {
+            const revenue = data.grid_feed_in_revenue + data.community_feed_in_revenue;
+            return [new Date(date).getTime(), -revenue];
+          }).slice(-30);
+        show:
+          in_header: true
+          legend_value: true
+      - entity: sensor.counter_point_1_daily_cost
+        name: Netto
+        type: line
+        color: "#2196F3"
+        stroke_width: 3
+        data_generator: |
+          const costs = entity.attributes.daily_costs;
+          if (!costs) return [];
+          return Object.entries(costs).map(([date, cost]) => {
+            return [new Date(date).getTime(), cost];
+          }).slice(-30);
+        show:
+          in_header: true
+          legend_value: true
+    apex_config:
+      chart:
+        height: 400px
+        stacked: false
+      plotOptions:
+        bar:
+          columnWidth: 80%
+      dataLabels:
+        enabled: false
+      yaxis:
+        - title:
+            text: Kosten (€)
+          labels:
+            formatter: |
+              EVAL:function(value) {
+                return '€ ' + value.toFixed(2);
+              }
+      xaxis:
+        type: datetime
+      tooltip:
+        x:
+          format: dd.MM.yyyy
+        "y":
+          formatter: |
+            EVAL:function(value, opts) {
+              if (value < 0) {
+                return '€ ' + Math.abs(value).toFixed(2) + ' (Gutschrift)';
+              }
+              return '€ ' + value.toFixed(2);
+            }
+      legend:
+        show: true
+        position: top
+      annotations:
+        yaxis:
+          - "y": 0
+            borderColor: "#999"
+            strokeDashArray: 3
+  - type: custom:apexcharts-card
+    header:
+      show: true
+      title: Monatliche Stromkosten
+      show_states: true
+      colorize_states: true
+    graph_span: 12months
+    span:
+      end: month
+    now:
+      show: true
+      label: Aktueller Monat
+    series:
+      - entity: sensor.counter_point_1_monthly_cost
+        name: Netzanbieter
+        type: column
+        color: "#FF5722"
+        data_generator: |
+          const breakdown = entity.attributes.monthly_costs_breakdown;
+          if (!breakdown) return [];
+          return Object.entries(breakdown).map(([month, data]) => {
+            const cost = data.grid_consumption_cost - data.grid_feed_in_revenue;
+            return [new Date(month + '-01').getTime(), cost.toFixed(2)];
+          });
+        show:
+          in_header: true
+          legend_value: true
+      - entity: sensor.counter_point_1_monthly_cost
+        name: Gemeinde
+        type: column
+        color: "#4CAF50"
+        data_generator: |
+          const breakdown = entity.attributes.monthly_costs_breakdown;
+          if (!breakdown) return [];
+          return Object.entries(breakdown).map(([month, data]) => {
+            const cost = data.community_consumption_cost - data.community_feed_in_revenue;
+            return [new Date(month + '-01').getTime(), cost.toFixed(2)];
+          });
+        show:
+          in_header: true
+          legend_value: true
+      - entity: sensor.counter_point_1_monthly_cost
+        name: Gesamt
+        type: line
+        color: "#2196F3"
+        stroke_width: 3
+        data_generator: |
+          const costs = entity.attributes.monthly_costs;
+          if (!costs) return [];
+          return Object.entries(costs).map(([month, cost]) => {
+            return [new Date(month + '-01').getTime(), cost.toFixed(2)];
+          });
+        show:
+          in_header: true
+          legend_value: true
+  - type: vertical-stack
+    cards:
+      - type: entities
+        title: Monatsübersicht
+        entities:
+          - entity: sensor.counter_point_1_monthly_cost
+            name: Aktuelle Monatskosten
+          - type: attribute
+            entity: sensor.counter_point_1_monthly_cost
+            attribute: monthly_costs_breakdown
+            name: Detailaufschlüsselung
+      - type: custom:apexcharts-card
+        header:
+          show: true
+          title: Monatsvergleich (letzte 12 Monate)
+          show_states: true
+        graph_span: 12months
+        span:
+          end: month
+        series:
+          - entity: sensor.counter_point_1_monthly_cost
+            name: Verbrauch
+            type: column
+            color: "#FF9800"
+            data_generator: |
+              const breakdown = entity.attributes.monthly_costs_breakdown;
+              if (!breakdown) return [];
+              return Object.entries(breakdown).map(([month, data]) => {
+                const cost = data.grid_consumption_cost + data.community_consumption_cost;
+                return [new Date(month + '-01').getTime(), cost.toFixed(2)];
+              });
+          - entity: sensor.counter_point_2_monthly_cost
+            name: Gutschrift
+            type: column
+            color: "#4CAF50"
+            data_generator: |
+              const breakdown = entity.attributes.monthly_costs_breakdown;
+              if (!breakdown) return [];
+              return Object.entries(breakdown).map(([month, data]) => {
+                const revenue = data.grid_feed_in_revenue + data.community_feed_in_revenue;
+                return [new Date(month + '-01').getTime(), -revenue.toFixed(2)];
+              });
+          - entity: sensor.counter_point_1_monthly_cost
+            name: Netto
+            type: line
+            color: "#2196F3"
+            stroke_width: 3
+            data_generator: |
+              const costs = entity.attributes.monthly_costs;
+              if (!costs) return [];
+              return Object.entries(costs).map(([month, cost]) => {
+                return [new Date(month + '-01').getTime(), cost.toFixed(2)];
+              });
+        apex_config:
+          chart:
+            height: 350px
+          plotOptions:
+            bar:
+              columnWidth: 70%
+          dataLabels:
+            enabled: true
+            formatter: |
+              EVAL:function(value) {
+                if (value === 0) return '';
+                return '€ ' + Math.abs(value).toFixed(0);
+              }
+          yaxis:
+            - title:
+                text: Kosten (€)
+              labels:
+                formatter: |
+                  EVAL:function(value) {
+                    return '€ ' + value.toFixed(0);
+                  }
+          xaxis:
+            type: datetime
+            labels:
+              format: MMM yy
+          tooltip:
+            x:
+              format: MMMM yyyy
+            "y":
+              formatter: |
+                EVAL:function(value) {
+                  if (value < 0) {
+                    return '€ ' + Math.abs(value).toFixed(2) + ' Gutschrift';
+                  }
+                  return '€ ' + value.toFixed(2);
+                }
+          legend:
+            show: true
+            position: top
+      - type: entities
+        title: Jahresübersicht
+        entities:
+          - entity: sensor.counter_point_1_yearly_cost
+            name: Aktuelle Jahreskosten
+          - type: attribute
+            entity: sensor.counter_point_1_yearly_cost
+            attribute: yearly_cost_breakdown
+            name: Jahresaufschlüsselung
+```
+
 
 ## API-Endpunkte
 
