@@ -136,7 +136,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 }
 
             # Get counter points
-            counter_points = await client.get_counter_points()
+            counter_points_raw = await client.get_counter_points()
+            _LOGGER.debug(
+                "Counter points raw response type=%s value=%s",
+                type(counter_points_raw).__name__,
+                str(counter_points_raw)[:500],
+            )
+            # Handle both list and dict ({"data": [...]}) response formats
+            if isinstance(counter_points_raw, dict):
+                counter_points = counter_points_raw.get("data", [])
+            elif isinstance(counter_points_raw, list):
+                counter_points = counter_points_raw
+            else:
+                counter_points = []
 
             # Get counter point energy data (current + previous month)
             counter_point_data = {}
@@ -150,15 +162,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 )
                 energy_data = _merge_energy_data(energy_current, energy_prev)
 
-                # Log data structure for debugging
-                data_section = energy_data.get("data", {})
-                for rc_key, rc_val in (data_section.items() if isinstance(data_section, dict) else []):
-                    _LOGGER.debug(
-                        "CounterPoint %s rc_key=%s data type=%s entries=%s",
-                        cp_id, rc_key, type(rc_val).__name__,
-                        len(rc_val) if rc_val else 0,
-                    )
-                    break
+                # Log full structure for debugging counter point data
+                _LOGGER.debug(
+                    "CounterPoint %s energy keys=%s total_keys=%s data_type=%s data_sample=%s",
+                    cp_id,
+                    list(energy_data.keys()),
+                    list(energy_data.get("total", {}).keys()),
+                    type(energy_data.get("data")).__name__,
+                    str(energy_data.get("data", {}))[:300],
+                )
 
                 counter_point_data[cp_id] = {
                     "info": counter_point,
