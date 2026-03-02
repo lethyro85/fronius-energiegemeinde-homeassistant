@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2026-03-02
+
+### Fixed
+- `AttributeError: 'list' object has no attribute 'items'` crash on startup
+  - Fronius API changed daily data format from dict to list
+  - All sensors now handle both dict and list formats transparently
+  - Added `AttributeError` to exception handlers so sensors register even on unexpected formats
+- Added debug logging to capture actual API response structure for future format diagnostics
+
 ## [0.2.0] - 2026-02-21
 
 ### Added

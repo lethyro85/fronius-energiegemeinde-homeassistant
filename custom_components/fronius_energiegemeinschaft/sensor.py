@@ -29,6 +29,27 @@ from .const import DATA_COORDINATOR, DATA_PRICING, DOMAIN
 _LOGGER = logging.getLogger(__name__)
 
 
+def _iter_daily_data(raw_data):
+    """Iterate daily data entries, handling both dict and list API formats.
+
+    Old format: {"2026-02-01T00:00:00Z": {"crec": {...}, ...}, ...}
+    New format: [{"date": "2026-02-01T00:00:00Z", "crec": {...}, ...}, ...]
+    """
+    if isinstance(raw_data, dict):
+        yield from raw_data.items()
+    elif isinstance(raw_data, list):
+        _LOGGER.debug("API returned list format for daily data (new format detected)")
+        for item in raw_data:
+            if isinstance(item, dict):
+                date_str = item.get("date", item.get("datetime", item.get("date_time", "")))
+                if date_str:
+                    yield date_str, item
+                else:
+                    _LOGGER.debug("List item has no date field, keys: %s", list(item.keys()))
+    else:
+        _LOGGER.warning("Unexpected data type for daily data: %s", type(raw_data))
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
@@ -187,11 +208,12 @@ class FroniusCommunitySensor(CoordinatorEntity, SensorEntity):
             # Get daily data from the energy_data
             daily_data = {}
             raw_data = energy_data.get("data", {}).get(self._rc_number, {})
-            for date_str, values in raw_data.items():
+            for date_str, values in _iter_daily_data(raw_data):
                 if self._data_key in values:
                     # Extract just the date part (YYYY-MM-DD)
                     date_only = date_str.split("T")[0]
-                    value = values[self._data_key].get("value", "0")
+                    val = values[self._data_key]
+                    value = val.get("value", "0") if isinstance(val, dict) else str(val)
                     try:
                         daily_data[date_only] = float(value)
                     except (ValueError, TypeError):
@@ -207,7 +229,7 @@ class FroniusCommunitySensor(CoordinatorEntity, SensorEntity):
                 "daily_data": daily_data,
                 "last_30_days": list(daily_data.values())[-30:] if daily_data else [],
             }
-        except (KeyError, TypeError):
+        except (KeyError, TypeError, AttributeError):
             return {}
 
 
@@ -276,7 +298,7 @@ class FroniusCounterPointSensor(CoordinatorEntity, SensorEntity):
                 rc_key = list(data_dict.keys())[0]
                 raw_data = data_dict.get(rc_key, {})
 
-                for date_str, values in raw_data.items():
+                for date_str, values in _iter_daily_data(raw_data):
                     # Extract just the date part (YYYY-MM-DD)
                     date_only = date_str.split("T")[0]
 
@@ -291,7 +313,10 @@ class FroniusCounterPointSensor(CoordinatorEntity, SensorEntity):
                     ]:
                         if key in values:
                             try:
-                                daily_dict[date_only] = float(values[key].get("value", "0"))
+                                val = values[key]
+                                daily_dict[date_only] = float(
+                                    val.get("value", "0") if isinstance(val, dict) else val
+                                )
                             except (ValueError, TypeError, AttributeError):
                                 pass
 
@@ -320,7 +345,7 @@ class FroniusCounterPointSensor(CoordinatorEntity, SensorEntity):
                 "last_30_days_fgrid": list(daily_data_fgrid.values())[-30:] if daily_data_fgrid else [],
                 "last_30_days_ftotal": list(daily_data_ftotal.values())[-30:] if daily_data_ftotal else [],
             }
-        except (KeyError, TypeError):
+        except (KeyError, TypeError, AttributeError):
             return {}
 
 
@@ -374,20 +399,24 @@ class DailyCostSensor(CoordinatorEntity, SensorEntity):
             raw_data = data_dict.get(rc_key, {})
 
             daily_costs = {}
-            for date_str, values in raw_data.items():
+            for date_str, values in _iter_daily_data(raw_data):
                 date_only = date_str.split("T")[0]
 
+                def _get_val(key):
+                    v = values.get(key, {})
+                    return float(v.get("value", "0") if isinstance(v, dict) else v or 0)
+
                 # Consumption costs
-                cgrid = float(values.get("cgrid", {}).get("value", "0"))
-                crec = float(values.get("crec", {}).get("value", "0"))
+                cgrid = _get_val("cgrid")
+                crec = _get_val("crec")
                 consumption_cost = (
                     cgrid * self._pricing["grid_consumption"]
                     + crec * self._pricing["community_consumption"]
                 )
 
                 # Feed-in revenue (negative cost)
-                fgrid = float(values.get("fgrid", {}).get("value", "0"))
-                frec = float(values.get("frec", {}).get("value", "0"))
+                fgrid = _get_val("fgrid")
+                frec = _get_val("frec")
                 feed_in_revenue = (
                     fgrid * self._pricing["grid_feed_in"]
                     + frec * self._pricing["community_feed_in"]
@@ -398,7 +427,7 @@ class DailyCostSensor(CoordinatorEntity, SensorEntity):
                 daily_costs[date_only] = net_cost
 
             return daily_costs
-        except (KeyError, ValueError, TypeError):
+        except (KeyError, ValueError, TypeError, AttributeError):
             return {}
 
     @property

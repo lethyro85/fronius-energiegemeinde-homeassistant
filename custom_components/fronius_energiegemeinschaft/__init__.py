@@ -84,6 +84,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 energy_data = await client.get_community_energy_data(
                     community_id, view="month"
                 )
+                # Log data structure for debugging format changes
+                data_section = energy_data.get("data", {})
+                for rc_key, rc_val in (data_section.items() if isinstance(data_section, dict) else []):
+                    _LOGGER.debug(
+                        "Community %s rc_key=%s data type=%s sample=%s",
+                        community_id, rc_key, type(rc_val).__name__,
+                        str(rc_val)[:200] if rc_val else "empty",
+                    )
+                    break  # only log first key
+
                 community_data[community_id] = {
                     "info": community,
                     "energy": energy_data,
@@ -99,6 +109,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 energy_data = await client.get_counter_point_energy_data(
                     cp_id, view="month"
                 )
+                # Log data structure for debugging format changes
+                data_section = energy_data.get("data", {})
+                for rc_key, rc_val in (data_section.items() if isinstance(data_section, dict) else []):
+                    _LOGGER.debug(
+                        "CounterPoint %s rc_key=%s data type=%s sample=%s",
+                        cp_id, rc_key, type(rc_val).__name__,
+                        str(rc_val)[:200] if rc_val else "empty",
+                    )
+                    break  # only log first key
+
                 counter_point_data[cp_id] = {
                     "info": counter_point,
                     "energy": energy_data,
