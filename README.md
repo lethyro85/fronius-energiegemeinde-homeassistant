@@ -5,7 +5,7 @@
 
 Diese Custom Integration ermöglicht die Anbindung des Fronius Energiegemeinschafts-Portals an Home Assistant.
 
-**Aktuelle Version:** 0.2.0 ([Changelog](CHANGELOG.md))
+**Aktuelle Version:** 0.2.5 ([Changelog](CHANGELOG.md))
 
 ## Features
 
@@ -17,7 +17,7 @@ Diese Custom Integration ermöglicht die Anbindung des Fronius Energiegemeinscha
   - Ihr individueller Verbrauch und Erzeugung
   - Tägliche Aufschlüsselung der letzten 30 Tage
 
-- 💰 **Kosten-Tracking (NEU in v0.2.0)**
+- 💰 **Kosten-Tracking**
   - Konfigurierbare Strompreise (Netz & Gemeinde, Verbrauch & Einspeisung)
   - Tägliche, monatliche und jährliche Kostenberechnung
   - Automatische Berechnung der Nettokosten (Verbrauch - Einspeisevergütung)
@@ -41,7 +41,7 @@ Diese Custom Integration ermöglicht die Anbindung des Fronius Energiegemeinscha
 - Verbrauch (Consumer): Ihr täglicher Stromverbrauch
 - Erzeugung (Producer): Ihre tägliche Stromproduktion
 
-**Kosten-Sensoren (NEU in v0.2.0):**
+**Kosten-Sensoren:**
 - **Daily Cost**: Tageskosten mit detaillierter Aufschlüsselung
 - **Monthly Cost**: Monatliche Gesamtkosten
 - **Yearly Cost**: Jährliche Gesamtkosten
@@ -81,7 +81,7 @@ Alle Sensoren bieten zusätzliche Attribute mit täglichen Daten:
 2. Klicken Sie auf **+ Integration hinzufügen**
 3. Suchen Sie nach "Fronius Energiegemeinschaft"
 4. **Schritt 1:** Geben Sie Ihre Anmeldedaten für das Fronius Energiegemeinschafts-Portal ein
-5. **Schritt 2 (NEU in v0.2.0):** Konfigurieren Sie Ihre Strompreise
+5. **Schritt 2:** Konfigurieren Sie Ihre Strompreise
    - Netzanbieter Verbrauchspreis (€/kWh)
    - Gemeinde Verbrauchspreis (€/kWh)
    - Netzanbieter Einspeisepreis (€/kWh)
@@ -121,18 +121,18 @@ Wir bieten fertige Dashboard-Konfigurationen an:
 - Zeigt Linie für Prozentsatz aus der Gemeinschaft
 - Dual Y-Achsen (kWh + %)
 
-**💰 [dashboard_costs_monthly.yaml](dashboard_costs_monthly.yaml)** (NEU in v0.2.0)
+**💰 [dashboard_costs_monthly.yaml](dashboard_costs_monthly.yaml)**
 - Monatliche Kostenübersicht
 - Gestapelte Balken (Netz + Gemeinde)
 - Gesamtkosten als Linie
 - Zeigt letzte 12 Monate
 
-**📊 [dashboard_costs_daily_detail.yaml](dashboard_costs_daily_detail.yaml)** (NEU in v0.2.0)
+**📊 [dashboard_costs_daily_detail.yaml](dashboard_costs_daily_detail.yaml)**
 - Tägliche Kostendetails der letzten 30 Tage
 - Aufschlüsselung: Netz-Verbrauch, Gemeinde-Verbrauch, Einspeisung
 - Nettokosten als Linie
 
-**📅 [dashboard_costs_monthly_selector.yaml](dashboard_costs_monthly_selector.yaml)** (NEU in v0.2.0)
+**📅 [dashboard_costs_monthly_selector.yaml](dashboard_costs_monthly_selector.yaml)**
 - Monatsvergleich der letzten 12 Monate
 - Detaillierte Aufschlüsselung pro Monat
 - Jahresübersicht
@@ -640,4 +640,4 @@ MIT License
 
 ## Support
 
-Bei Problemen oder Fragen erstellen Sie bitte ein Issue auf Codeberg: https://codeberg.org/lethyro/fronius-energiegemeinde-homeassistant/issues
+Bei Problemen oder Fragen erstellen Sie bitte ein Issue auf GitHub: https://github.com/lethyros85/fronius-energiegemeinde-homeassistant/issues
