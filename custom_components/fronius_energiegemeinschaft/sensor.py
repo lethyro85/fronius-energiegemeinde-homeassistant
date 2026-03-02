@@ -290,13 +290,16 @@ class FroniusCounterPointSensor(CoordinatorEntity, SensorEntity):
             daily_data_fgrid = {}
             daily_data_ftotal = {}
 
-            # Counter points have data under rc_number key(s), similar to communities
-            # Get the first (usually only) rc_number key
-            data_dict = energy_data.get("data", {})
-            if data_dict:
-                # Take the first rc_number key (usually there's only one)
-                rc_key = list(data_dict.keys())[0]
-                raw_data = data_dict.get(rc_key, {})
+            # Counter points return data as a list; communities return a dict with rc_key
+            data_section = energy_data.get("data")
+            if isinstance(data_section, list):
+                raw_data = data_section  # list of {"date": "...", "crec": ..., ...}
+            elif isinstance(data_section, dict) and data_section:
+                rc_key = list(data_section.keys())[0]
+                raw_data = data_section.get(rc_key, {})
+            else:
+                raw_data = {}
+            if raw_data:
 
                 for date_str, values in _iter_daily_data(raw_data):
                     # Extract just the date part (YYYY-MM-DD)
@@ -389,14 +392,17 @@ class DailyCostSensor(CoordinatorEntity, SensorEntity):
         try:
             cp_data = self.coordinator.data["counter_points"].get(self._cp_id, {})
             energy_data = cp_data.get("energy", {})
-            data_dict = energy_data.get("data", {})
-
-            if not data_dict:
+            data_section = energy_data.get("data")
+            if isinstance(data_section, list):
+                raw_data = data_section
+            elif isinstance(data_section, dict) and data_section:
+                rc_key = list(data_section.keys())[0]
+                raw_data = data_section.get(rc_key, {})
+            else:
                 return {}
 
-            # Get the first (usually only) rc_number key
-            rc_key = list(data_dict.keys())[0]
-            raw_data = data_dict.get(rc_key, {})
+            if not raw_data:
+                return {}
 
             daily_costs = {}
             for date_str, values in _iter_daily_data(raw_data):

@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.4] - 2026-03-02
+
+### Fixed
+- Counter point daily_data attributes always empty
+- Counter point API returns `data` as a **list** (not a dict with rc_key wrapper)
+- `_merge_energy_data` now handles list format for counter points
+- `FroniusCounterPointSensor` and `DailyCostSensor` now read list data directly
+
 ## [0.2.3] - 2026-03-02
 
 ### Changed

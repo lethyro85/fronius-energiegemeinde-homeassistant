@@ -38,25 +38,47 @@ def _merge_energy_data(current: dict, previous: dict) -> dict:
 
     Keeps the 'total' and 'meta' from the current month.
     Merges 'data' so daily entries from both months are available.
+    Handles both dict (community) and list (counter point) data formats.
     """
     merged = dict(current)
-    current_data = current.get("data", {})
-    prev_data = previous.get("data", {})
+    current_data = current.get("data")
+    prev_data = previous.get("data")
 
-    if not isinstance(current_data, dict) or not isinstance(prev_data, dict):
-        return merged
+    if isinstance(current_data, dict) and isinstance(prev_data, dict):
+        # Community format: {"RC12345": {"2026-02-01": {...}, ...}}
+        merged_data = {}
+        for rc_key in set(list(current_data.keys()) + list(prev_data.keys())):
+            curr_rc = current_data.get(rc_key, {})
+            prev_rc = prev_data.get(rc_key, {})
+            if isinstance(curr_rc, dict) and isinstance(prev_rc, dict):
+                merged_data[rc_key] = {**prev_rc, **curr_rc}
+            else:
+                merged_data[rc_key] = curr_rc if curr_rc else prev_rc
+        merged["data"] = merged_data
 
-    merged_data = {}
-    all_rc_keys = set(list(current_data.keys()) + list(prev_data.keys()))
-    for rc_key in all_rc_keys:
-        curr_rc = current_data.get(rc_key, {})
-        prev_rc = prev_data.get(rc_key, {})
-        if isinstance(curr_rc, dict) and isinstance(prev_rc, dict):
-            merged_data[rc_key] = {**prev_rc, **curr_rc}  # current overwrites prev on same key
-        else:
-            merged_data[rc_key] = curr_rc or prev_rc
+    elif isinstance(current_data, list) or isinstance(prev_data, list):
+        # Counter point format: [{"date": "2026-02-01", ...}, ...]
+        curr_list = current_data if isinstance(current_data, list) else []
+        prev_list = prev_data if isinstance(prev_data, list) else []
 
-    merged["data"] = merged_data
+        # Index current entries by date so they override prev on overlap
+        current_by_date = {}
+        for item in curr_list:
+            if isinstance(item, dict):
+                d = item.get("date", item.get("datetime", ""))
+                if d:
+                    current_by_date[d.split("T")[0]] = item
+
+        merged_list = []
+        for item in prev_list:
+            if isinstance(item, dict):
+                d = item.get("date", item.get("datetime", ""))
+                date_only = d.split("T")[0] if d else ""
+                if date_only not in current_by_date:
+                    merged_list.append(item)
+        merged_list.extend(curr_list)
+        merged["data"] = merged_list
+
     return merged
 
 
