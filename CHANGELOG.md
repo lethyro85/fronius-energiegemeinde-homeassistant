@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.5] - 2026-03-02
+
+### Fixed
+- Counter point daily data empty: API returns `[]` (empty list) for current month when no data yet
+- `_merge_energy_data` now normalizes empty lists to "no data" and falls back to previous month dict
+- Verified with live API: 16 daily entries correctly parsed for Feb 2026
+
 ## [0.2.4] - 2026-03-02
 
 ### Fixed

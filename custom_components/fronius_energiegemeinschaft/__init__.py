@@ -33,19 +33,29 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 
+def _normalize_data(data) -> dict | list | None:
+    """Normalize data: treat empty list as None (no data available)."""
+    if isinstance(data, list) and len(data) == 0:
+        return None
+    return data
+
+
 def _merge_energy_data(current: dict, previous: dict) -> dict:
     """Merge energy data from two months (current wins on overlap).
 
-    Keeps the 'total' and 'meta' from the current month.
+    Keeps 'total' and 'meta' from the current month.
     Merges 'data' so daily entries from both months are available.
-    Handles both dict (community) and list (counter point) data formats.
+
+    The API returns 'data' as:
+    - dict {"RC12345": {"2026-02-01": {...}}} when data exists
+    - [] (empty list) when no data for that month yet
     """
     merged = dict(current)
-    current_data = current.get("data")
-    prev_data = previous.get("data")
+    current_data = _normalize_data(current.get("data"))
+    prev_data = _normalize_data(previous.get("data"))
 
     if isinstance(current_data, dict) and isinstance(prev_data, dict):
-        # Community format: {"RC12345": {"2026-02-01": {...}, ...}}
+        # Both months have dict data — merge by rc_key, current overwrites on overlap
         merged_data = {}
         for rc_key in set(list(current_data.keys()) + list(prev_data.keys())):
             curr_rc = current_data.get(rc_key, {})
@@ -55,29 +65,15 @@ def _merge_energy_data(current: dict, previous: dict) -> dict:
             else:
                 merged_data[rc_key] = curr_rc if curr_rc else prev_rc
         merged["data"] = merged_data
-
-    elif isinstance(current_data, list) or isinstance(prev_data, list):
-        # Counter point format: [{"date": "2026-02-01", ...}, ...]
-        curr_list = current_data if isinstance(current_data, list) else []
-        prev_list = prev_data if isinstance(prev_data, list) else []
-
-        # Index current entries by date so they override prev on overlap
-        current_by_date = {}
-        for item in curr_list:
-            if isinstance(item, dict):
-                d = item.get("date", item.get("datetime", ""))
-                if d:
-                    current_by_date[d.split("T")[0]] = item
-
-        merged_list = []
-        for item in prev_list:
-            if isinstance(item, dict):
-                d = item.get("date", item.get("datetime", ""))
-                date_only = d.split("T")[0] if d else ""
-                if date_only not in current_by_date:
-                    merged_list.append(item)
-        merged_list.extend(curr_list)
-        merged["data"] = merged_list
+    elif isinstance(current_data, dict):
+        # Only current has data
+        merged["data"] = current_data
+    elif isinstance(prev_data, dict):
+        # Current month has no data yet (empty list) — use previous month
+        merged["data"] = prev_data
+    elif isinstance(current_data, list) and isinstance(prev_data, list):
+        # Both are non-empty lists — concatenate (prev first)
+        merged["data"] = prev_data + current_data
 
     return merged
 
@@ -184,14 +180,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 )
                 energy_data = _merge_energy_data(energy_current, energy_prev)
 
-                # Log full structure for debugging counter point data
+                data_section = energy_data.get("data")
                 _LOGGER.debug(
-                    "CounterPoint %s energy keys=%s total_keys=%s data_type=%s data_sample=%s",
+                    "CounterPoint %s data type=%s entries=%s",
                     cp_id,
-                    list(energy_data.keys()),
-                    list(energy_data.get("total", {}).keys()),
-                    type(energy_data.get("data")).__name__,
-                    str(energy_data.get("data", {}))[:300],
+                    type(data_section).__name__,
+                    len(data_section) if data_section else 0,
                 )
 
                 counter_point_data[cp_id] = {
