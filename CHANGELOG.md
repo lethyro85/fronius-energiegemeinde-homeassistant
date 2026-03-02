@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] - 2026-03-02
+
+### Fixed
+- All sensor values showing 0 at the start of a new month
+- Now always fetches both current and previous month data and merges them
+- Ensures ~60 days of daily data are always available regardless of month boundary
+- Sensor state (total) reflects the most current month; daily_data attributes span both months
+
 ## [0.2.1] - 2026-03-02
 
 ### Fixed

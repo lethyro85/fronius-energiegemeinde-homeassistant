@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -31,6 +31,33 @@ from .api_client import FroniusEnergyClient
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
+
+
+def _merge_energy_data(current: dict, previous: dict) -> dict:
+    """Merge energy data from two months (current wins on overlap).
+
+    Keeps the 'total' and 'meta' from the current month.
+    Merges 'data' so daily entries from both months are available.
+    """
+    merged = dict(current)
+    current_data = current.get("data", {})
+    prev_data = previous.get("data", {})
+
+    if not isinstance(current_data, dict) or not isinstance(prev_data, dict):
+        return merged
+
+    merged_data = {}
+    all_rc_keys = set(list(current_data.keys()) + list(prev_data.keys()))
+    for rc_key in all_rc_keys:
+        curr_rc = current_data.get(rc_key, {})
+        prev_rc = prev_data.get(rc_key, {})
+        if isinstance(curr_rc, dict) and isinstance(prev_rc, dict):
+            merged_data[rc_key] = {**prev_rc, **curr_rc}  # current overwrites prev on same key
+        else:
+            merged_data[rc_key] = curr_rc or prev_rc
+
+    merged["data"] = merged_data
+    return merged
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -74,25 +101,34 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def async_update_data():
         """Fetch data from API."""
         try:
+            now = datetime.now()
+            current_month = now.strftime("%Y-%m")
+            prev_month = (now.replace(day=1) - timedelta(days=1)).strftime("%Y-%m")
+
             # Get communities
             communities = await client.get_communities()
 
-            # Get community energy data for all communities
+            # Get community energy data for all communities (current + previous month)
             community_data = {}
             for community in communities:
                 community_id = community["id"]
-                energy_data = await client.get_community_energy_data(
-                    community_id, view="month"
+                energy_current = await client.get_community_energy_data(
+                    community_id, view="month", time=current_month
                 )
-                # Log data structure for debugging format changes
+                energy_prev = await client.get_community_energy_data(
+                    community_id, view="month", time=prev_month
+                )
+                energy_data = _merge_energy_data(energy_current, energy_prev)
+
+                # Log data structure for debugging
                 data_section = energy_data.get("data", {})
                 for rc_key, rc_val in (data_section.items() if isinstance(data_section, dict) else []):
                     _LOGGER.debug(
-                        "Community %s rc_key=%s data type=%s sample=%s",
+                        "Community %s rc_key=%s data type=%s entries=%s",
                         community_id, rc_key, type(rc_val).__name__,
-                        str(rc_val)[:200] if rc_val else "empty",
+                        len(rc_val) if rc_val else 0,
                     )
-                    break  # only log first key
+                    break
 
                 community_data[community_id] = {
                     "info": community,
@@ -102,22 +138,27 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             # Get counter points
             counter_points = await client.get_counter_points()
 
-            # Get counter point energy data
+            # Get counter point energy data (current + previous month)
             counter_point_data = {}
             for counter_point in counter_points:
                 cp_id = counter_point["id"]
-                energy_data = await client.get_counter_point_energy_data(
-                    cp_id, view="month"
+                energy_current = await client.get_counter_point_energy_data(
+                    cp_id, view="month", time=current_month
                 )
-                # Log data structure for debugging format changes
+                energy_prev = await client.get_counter_point_energy_data(
+                    cp_id, view="month", time=prev_month
+                )
+                energy_data = _merge_energy_data(energy_current, energy_prev)
+
+                # Log data structure for debugging
                 data_section = energy_data.get("data", {})
                 for rc_key, rc_val in (data_section.items() if isinstance(data_section, dict) else []):
                     _LOGGER.debug(
-                        "CounterPoint %s rc_key=%s data type=%s sample=%s",
+                        "CounterPoint %s rc_key=%s data type=%s entries=%s",
                         cp_id, rc_key, type(rc_val).__name__,
-                        str(rc_val)[:200] if rc_val else "empty",
+                        len(rc_val) if rc_val else 0,
                     )
-                    break  # only log first key
+                    break
 
                 counter_point_data[cp_id] = {
                     "info": counter_point,
