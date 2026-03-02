@@ -7,10 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.5] - 2026-03-02
 
-### Fixed
-- Counter point daily data empty: API returns `[]` (empty list) for current month when no data yet
-- `_merge_energy_data` now normalizes empty lists to "no data" and falls back to previous month dict
-- Verified with live API: 16 daily entries correctly parsed for Feb 2026
+### Fixed (API behaviour changes since v0.2.0)
+
+Between v0.2.0 and v0.2.5 the Fronius portal API changed in several ways
+that broke the integration at the start of March 2026:
+
+**1. Community `data` section — intermittent list format (v0.2.1)**
+- Old (v0.2.0): `energy_data["data"][rc_number]` was always a date-keyed dict
+  `{"2026-02-01T00:00:00+01:00": {"crec": {"value": "1.23"}, ...}}`
+- New (observed March 1): same key sometimes returned a **list** `[...]`
+- Fix: added `_iter_daily_data()` helper that transparently handles both dict and list
+- Fix: added `AttributeError` to all `except` clauses so sensors don't crash on startup
+
+**2. Counter point `data` section — empty list when no current-month data (v0.2.5)**
+- Old (v0.2.0): when no data, API returned `{}` (empty dict)
+- New: when the current month has no data yet, API returns `[]` (empty **list**)
+  while previous month still returns a proper dict `{"CC101056": {date: {...}}}`
+- This caused all `daily_data_*` sensor attributes to be empty `{}`
+- Fix: `_normalize_data()` treats `[]` as "no data available"
+- Fix: `_merge_energy_data()` falls back to previous month's dict when current is empty
+
+**3. Month boundary — no current-month data (v0.2.2)**
+- Integration previously only fetched the current month
+- At the start of a new month + 2-day smart meter delay → all values 0
+- Fix: always fetch both current and previous month, merge the daily data
+
+**Verified with live API test script** (`test_api.py`):
+- Counter Point 913 (Consumer): 16 daily entries, Feb 28 ctotal=22.84 kWh
+- Counter Point 914 (Producer): 16 daily entries, Feb 28 ftotal=0.17 kWh
 
 ## [0.2.4] - 2026-03-02
 
