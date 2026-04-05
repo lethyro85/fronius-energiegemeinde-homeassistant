@@ -5,7 +5,7 @@
 
 Diese Custom Integration ermöglicht die Anbindung des Fronius Energiegemeinschafts-Portals an Home Assistant.
 
-**Aktuelle Version:** 0.2.5 ([Changelog](CHANGELOG.md))
+**Aktuelle Version:** 0.2.7 ([Changelog](CHANGELOG.md))
 
 ## Features
 
@@ -22,6 +22,11 @@ Diese Custom Integration ermöglicht die Anbindung des Fronius Energiegemeinscha
   - Tägliche, monatliche und jährliche Kostenberechnung
   - Automatische Berechnung der Nettokosten (Verbrauch - Einspeisevergütung)
   - Detaillierte Kostenaufschlüsselung nach Quelle
+
+- 📉 **Langzeit-Statistiken** (ab v0.2.6)
+  - Monatliche Kosten werden automatisch in den HA Recorder geschrieben
+  - Rückwirkend 13 Monate beim ersten Start befüllt
+  - Sichtbar unter *Developer Tools → Statistiken* und in ApexCharts nutzbar
 
 - 🔄 **Automatische Aktualisierung** alle 5 Minuten
 - ⏱️ **Datenhistorie:** Tägliche Werte für die letzten 30 Tage
