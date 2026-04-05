@@ -5,7 +5,7 @@
 
 Diese Custom Integration ermöglicht die Anbindung des Fronius Energiegemeinschafts-Portals an Home Assistant.
 
-**Aktuelle Version:** 0.2.7 ([Changelog](CHANGELOG.md))
+**Aktuelle Version:** 0.2.8 ([Changelog](CHANGELOG.md))
 
 ## Features
 

@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.8] - 2026-04-05
+
+### Fixed
+- Statistics: regular updates now refresh **current + previous month** (not just current month).
+  The Fronius portal has a ~2 day data delay, so the previous month's total can still change
+  for the first 2 days of a new month. Without this fix the previous month's statistic
+  would remain incomplete if the backfill ran before the data was fully settled.
+
 ## [0.2.7] - 2026-04-05
 
 ### Fixed

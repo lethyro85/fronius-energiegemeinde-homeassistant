@@ -310,9 +310,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 }
 
             # Write monthly cost statistics to recorder
-            # First run: backfill last 13 months; subsequent runs: update current month only
+            # First run: backfill last 13 months
+            # Subsequent runs: update current + previous month (prev may still be settling
+            # due to ~2 day data delay from Fronius portal)
             months_for_stats = (
-                _get_last_n_months(13, now) if not stats_backfilled else [current_month]
+                _get_last_n_months(13, now) if not stats_backfilled else [prev_month, current_month]
             )
             for counter_point in counter_points:
                 cp_id = counter_point["id"]
