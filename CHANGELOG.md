@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.6] - 2026-04-05
+
+### Added
+
+**Long-term statistics for monthly electricity costs**
+- The integration now writes historical statistics directly into the HA recorder
+  using `async_add_external_statistics`
+- Statistic ID: `fronius_energiegemeinschaft:counter_point_{id}_monthly_cost`
+- On first startup: backfills the last 13 months automatically with one API call per month
+- On each subsequent update: refreshes only the current month (keeps running total current)
+- Statistics include `state` (monthly net cost €) and `sum` (cumulative total)
+- Visible in HA → Developer Tools → Statistics and usable in ApexCharts / Energy dashboard
+- Added `"dependencies": ["recorder"]` to manifest.json
+
 ## [0.2.5] - 2026-03-02
 
 ### Fixed (API behaviour changes since v0.2.0)

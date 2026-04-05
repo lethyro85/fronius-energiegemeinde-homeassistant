@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import zoneinfo
 from datetime import datetime, timedelta
 
 from homeassistant.config_entries import ConfigEntry
@@ -31,6 +32,109 @@ from .api_client import FroniusEnergyClient
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
+
+
+def _get_last_n_months(n: int, reference: datetime | None = None) -> list[str]:
+    """Return list of YYYY-MM strings for the last n months, oldest first."""
+    if reference is None:
+        reference = datetime.now()
+    months = []
+    dt = reference.replace(day=1)
+    for _ in range(n):
+        months.append(dt.strftime("%Y-%m"))
+        dt = (dt - timedelta(days=1)).replace(day=1)
+    return list(reversed(months))
+
+
+def _extract_float(val) -> float:
+    """Extract float from API value (dict with 'value' key, or direct string/number)."""
+    if isinstance(val, dict):
+        return float(val.get("value", 0) or 0)
+    try:
+        return float(val or 0)
+    except (ValueError, TypeError):
+        return 0.0
+
+
+async def _write_cp_monthly_cost_statistics(
+    hass: HomeAssistant,
+    client,
+    cp_id: int,
+    cp_number: str,
+    months: list[str],
+    pricing: dict,
+) -> None:
+    """Fetch monthly totals for each month and write cost statistics to HA recorder."""
+    try:
+        from homeassistant.components.recorder.statistics import (  # noqa: PLC0415
+            async_add_external_statistics,
+        )
+        from homeassistant.components.recorder.models import (  # noqa: PLC0415
+            StatisticData,
+            StatisticMetaData,
+        )
+    except ImportError:
+        _LOGGER.warning("Recorder statistics API not available — skipping historical stats")
+        return
+
+    tz = zoneinfo.ZoneInfo(hass.config.time_zone)
+    statistic_id = f"{DOMAIN}:counter_point_{cp_id}_monthly_cost"
+
+    metadata = StatisticMetaData(
+        has_mean=False,
+        has_sum=True,
+        name=f"Counter Point {cp_number} Monthly Cost",
+        source=DOMAIN,
+        statistic_id=statistic_id,
+        unit_of_measurement="€",
+    )
+
+    statistics = []
+    cumulative_sum = 0.0
+
+    for month_str in months:
+        try:
+            energy_data = await client.get_counter_point_energy_data(
+                cp_id, view="month", time=month_str
+            )
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Could not fetch %s for statistics: %s", month_str, err)
+            continue
+
+        total_data = energy_data.get("total", {}).get("total", {})
+        if not total_data:
+            _LOGGER.debug(
+                "No total data for counter point %s month %s — skipping", cp_id, month_str
+            )
+            continue
+
+        cgrid = _extract_float(total_data.get("cgrid"))
+        crec = _extract_float(total_data.get("crec"))
+        fgrid = _extract_float(total_data.get("fgrid"))
+        frec = _extract_float(total_data.get("frec"))
+
+        consumption_cost = (
+            cgrid * pricing["grid_consumption"] + crec * pricing["community_consumption"]
+        )
+        feed_in_revenue = (
+            fgrid * pricing["grid_feed_in"] + frec * pricing["community_feed_in"]
+        )
+        net_cost = consumption_cost - feed_in_revenue
+        cumulative_sum += net_cost
+
+        dt = datetime.strptime(month_str, "%Y-%m").replace(tzinfo=tz)
+        statistics.append(
+            StatisticData(start=dt, state=round(net_cost, 2), sum=round(cumulative_sum, 2))
+        )
+
+    if statistics:
+        async_add_external_statistics(hass, metadata, statistics)
+        _LOGGER.info(
+            "Wrote %d monthly cost statistics for counter point %s (id=%s)",
+            len(statistics),
+            cp_number,
+            cp_id,
+        )
 
 
 def _normalize_data(data) -> dict | list | None:
@@ -116,8 +220,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.error("Failed to login: %s", err)
         return False
 
+    # Track whether historical statistics have been written (backfill once on startup)
+    stats_backfilled = False
+
     async def async_update_data():
         """Fetch data from API."""
+        nonlocal stats_backfilled
         try:
             now = datetime.now()
             current_month = now.strftime("%Y-%m")
@@ -192,6 +300,28 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     "info": counter_point,
                     "energy": energy_data,
                 }
+
+            # Write monthly cost statistics to recorder
+            # First run: backfill last 13 months; subsequent runs: update current month only
+            months_for_stats = (
+                _get_last_n_months(13, now) if not stats_backfilled else [current_month]
+            )
+            for counter_point in counter_points:
+                cp_id = counter_point["id"]
+                cp_number = counter_point_data[cp_id]["info"].get(
+                    "counter_number", str(cp_id)
+                )
+                try:
+                    await _write_cp_monthly_cost_statistics(
+                        hass, client, cp_id, cp_number, months_for_stats, pricing
+                    )
+                except Exception as stats_err:  # noqa: BLE001
+                    _LOGGER.error(
+                        "Failed to write statistics for counter point %s: %s",
+                        cp_id,
+                        stats_err,
+                    )
+            stats_backfilled = True
 
             return {
                 "communities": community_data,

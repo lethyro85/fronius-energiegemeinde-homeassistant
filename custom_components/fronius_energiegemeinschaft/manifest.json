@@ -1,10 +1,11 @@
 {
   "domain": "fronius_energiegemeinschaft",
   "name": "Fronius Energiegemeinschaft",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "documentation": "https://github.com/lethyro/fronius-energiegemeinde-homeassistant",
   "issue_tracker": "https://github.com/lethyro/fronius-energiegemeinde-homeassistant/issues",
   "requirements": ["aiohttp>=3.8.0"],
+  "dependencies": ["recorder"],
   "codeowners": ["@lethyro"],
   "config_flow": true,
   "iot_class": "cloud_polling",
