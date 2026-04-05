@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.7] - 2026-04-05
+
+### Fixed
+- Statistics import: `StatisticData`/`StatisticMetaData` moved from `recorder.models` to
+  `recorder.statistics` in HA 2024+. Import now tries the new location first, falls back
+  to the old location. Without this fix no statistics were written (silent ImportError).
+
 ## [0.2.6] - 2026-04-05
 
 ### Added

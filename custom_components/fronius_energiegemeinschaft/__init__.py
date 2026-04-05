@@ -65,17 +65,25 @@ async def _write_cp_monthly_cost_statistics(
     pricing: dict,
 ) -> None:
     """Fetch monthly totals for each month and write cost statistics to HA recorder."""
+    # HA 2024+ has all three in recorder.statistics; older versions split across models
     try:
         from homeassistant.components.recorder.statistics import (  # noqa: PLC0415
-            async_add_external_statistics,
-        )
-        from homeassistant.components.recorder.models import (  # noqa: PLC0415
             StatisticData,
             StatisticMetaData,
+            async_add_external_statistics,
         )
     except ImportError:
-        _LOGGER.warning("Recorder statistics API not available — skipping historical stats")
-        return
+        try:
+            from homeassistant.components.recorder.statistics import (  # noqa: PLC0415
+                async_add_external_statistics,
+            )
+            from homeassistant.components.recorder.models import (  # noqa: PLC0415
+                StatisticData,
+                StatisticMetaData,
+            )
+        except ImportError:
+            _LOGGER.warning("Recorder statistics API not available — skipping historical stats")
+            return
 
     tz = zoneinfo.ZoneInfo(hass.config.time_zone)
     statistic_id = f"{DOMAIN}:counter_point_{cp_id}_monthly_cost"
